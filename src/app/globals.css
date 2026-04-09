@@ -19,3 +19,35 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media print {
+  /* Ocultar elementos de navegação */
+  .no-print,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  /* Remover fundo cinza, mostrar documento branco */
+  body {
+    background: white !important;
+  }
+
+  /* O documento ocupa a página toda */
+  .print-documento {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Evitar quebra de página dentro de seções */
+  section {
+    break-inside: avoid;
+  }
+
+  /* Tamanho A4 */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}

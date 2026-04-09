@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import ToastContainer from '@/components/Toast'
 
 export const metadata: Metadata = {
   title: 'CondomínioVoz',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full">
-      <body className="h-full bg-[#f8fafc] antialiased">{children}</body>
+      <body className="h-full bg-[#f8fafc] antialiased">
+        {children}
+        <ToastContainer />
+      </body>
     </html>
   )
 }
