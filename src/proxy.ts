@@ -50,7 +50,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Rotas protegidas (autenticação obrigatória)
-  const protectedRoutes = ['/', '/demanda', '/votacoes', '/votacao']
+  const protectedRoutes = ['/', '/demanda', '/votacoes', '/votacao', '/perfil', '/nova-demanda']
   const isProtected = protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + '/')
   )
