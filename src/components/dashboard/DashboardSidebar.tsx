@@ -66,7 +66,7 @@ export default function DashboardSidebar({ condominioNome }: Props) {
       {/* Footer */}
       <div className="px-5 py-4 border-t border-white/10">
         <Link
-          href="/"
+          href="/demandas"
           className="text-xs text-white/40 hover:text-white/70 transition-colors"
         >
           ← Ir para demandas

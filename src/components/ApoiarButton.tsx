@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ThumbsUp, Loader2 } from 'lucide-react'
+import { ChevronUp, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -50,22 +50,38 @@ export default function ApoiarButton({
     <button
       onClick={toggle}
       disabled={loading}
-      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all disabled:opacity-60 ${
-        apoiado
-          ? 'bg-[#1e3a5f] text-white'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-      }`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '14px 28px',
+        borderRadius: 'var(--radius-full)',
+        fontSize: '0.9375rem',
+        fontWeight: 700,
+        fontFamily: 'var(--font-body)',
+        cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.6 : 1,
+        transition: 'all 0.2s var(--ease-spring)',
+        border: apoiado ? '2px solid var(--mint)' : '2px solid var(--gray-200)',
+        background: apoiado ? 'var(--mint-pale)' : 'var(--gray-100)',
+        color: apoiado ? 'var(--mint-dark)' : 'var(--gray-600)',
+        transform: loading ? 'none' : undefined,
+      }}
     >
       {loading ? (
-        <Loader2 size={16} className="animate-spin" />
+        <Loader2 size={18} className="animate-spin" />
       ) : (
-        <ThumbsUp
-          size={16}
-          strokeWidth={2.2}
-          fill={apoiado ? 'currentColor' : 'none'}
+        <ChevronUp
+          size={18}
+          strokeWidth={2.5}
+          style={{ color: apoiado ? 'var(--mint)' : 'var(--gray-400)' }}
         />
       )}
-      {apoiado ? 'Apoiado' : 'Apoiar'}
+      <span>
+        <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>{total}</span>
+        {' '}
+        {total === 1 ? 'apoio' : 'apoios'}
+      </span>
     </button>
   )
 }

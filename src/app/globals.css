@@ -1,53 +1,244 @@
+/* ─── Google Fonts ─────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
 @import "tailwindcss";
 
+/* ─── Design Tokens ─────────────────────────────────────────────────────── */
 @theme inline {
   --color-primary: #1e3a5f;
   --color-secondary: #10b981;
   --color-background: #f8fafc;
 }
 
+:root {
+  /* Navy palette */
+  --navy:        #1e3a5f;
+  --navy-dark:   #152d4a;
+  --navy-light:  #2a4f7c;
+  --navy-pale:   #eef3f9;
+
+  /* Mint palette */
+  --mint:        #10b981;
+  --mint-dark:   #059669;
+  --mint-pale:   #d1fae5;
+
+  /* Grays */
+  --gray-50:  #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  /* Category colors */
+  --cat-manutencao-bg:  #fef9c3;
+  --cat-manutencao-txt: #a16207;
+  --cat-seguranca-bg:   #fee2e2;
+  --cat-seguranca-txt:  #b91c1c;
+  --cat-lazer-bg:       #dbeafe;
+  --cat-lazer-txt:      #1d4ed8;
+  --cat-estetica-bg:    #f3e8ff;
+  --cat-estetica-txt:   #7e22ce;
+  --cat-estrutural-bg:  #ffedd5;
+  --cat-estrutural-txt: #c2410c;
+  --cat-outro-bg:       #f1f5f9;
+  --cat-outro-txt:      #475569;
+
+  /* Shadows */
+  --shadow-card:  0 2px 12px rgba(15, 36, 64, 0.06);
+  --shadow-hover: 0 4px 20px rgba(15, 36, 64, 0.12);
+  --shadow-float: 0 8px 32px rgba(15, 36, 64, 0.16);
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Fonts */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+
+  /* Easing */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  background-color: #f8fafc;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--gray-50);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--gray-800);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  line-height: 1.2;
 }
 
+/* ─── Typography utilities ───────────────────────────────────────────────── */
+.font-display { font-family: var(--font-display) !important; }
+.font-body    { font-family: var(--font-body) !important; }
+
+/* ─── App Card ───────────────────────────────────────────────────────────── */
+.app-card {
+  background: #ffffff;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s var(--ease-spring), border-color 0.3s var(--ease-spring);
+}
+.app-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--gray-200);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--navy);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 28px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-spring), transform 0.15s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
+}
+.btn-primary:hover {
+  background: var(--navy-light);
+  box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-mint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--mint);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 28px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-spring), transform 0.15s var(--ease-spring);
+}
+.btn-mint:hover { background: var(--mint-dark); transform: translateY(-1px); }
+.btn-mint:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--navy);
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-md);
+  padding: 12px 24px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-outline:hover { background: var(--navy-pale); }
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+.app-input {
+  width: 100%;
+  background: #fff;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--gray-800);
+  outline: none;
+  transition: border-color 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
+}
+.app-input::placeholder { color: var(--gray-400); }
+.app-input:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+}
+
+.app-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+/* ─── Category badges ────────────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.78rem; font-weight: 600; }
+.badge-manutencao { background: var(--cat-manutencao-bg); color: var(--cat-manutencao-txt); }
+.badge-seguranca  { background: var(--cat-seguranca-bg);  color: var(--cat-seguranca-txt); }
+.badge-lazer      { background: var(--cat-lazer-bg);      color: var(--cat-lazer-txt); }
+.badge-estetica   { background: var(--cat-estetica-bg);   color: var(--cat-estetica-txt); }
+.badge-estrutural { background: var(--cat-estrutural-bg); color: var(--cat-estrutural-txt); }
+.badge-outro      { background: var(--cat-outro-bg);      color: var(--cat-outro-txt); }
+
+/* ─── App Header ─────────────────────────────────────────────────────────── */
+.app-header {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gray-100);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 12px 16px;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeUp { animation: fadeUp 0.4s var(--ease-spring) both; }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.animate-pulse { animation: pulse-soft 1.5s ease-in-out infinite; }
+
+/* ─── Print ──────────────────────────────────────────────────────────────── */
 @media print {
-  /* Ocultar elementos de navegação */
-  .no-print,
-  nav,
-  header {
-    display: none !important;
-  }
-
-  /* Remover fundo cinza, mostrar documento branco */
-  body {
-    background: white !important;
-  }
-
-  /* O documento ocupa a página toda */
-  .print-documento {
-    box-shadow: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-  }
-
-  /* Evitar quebra de página dentro de seções */
-  section {
-    break-inside: avoid;
-  }
-
-  /* Tamanho A4 */
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
+  .no-print, nav, header { display: none !important; }
+  body { background: white !important; font-family: var(--font-body); }
+  .print-documento { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
+  section { break-inside: avoid; }
+  @page { size: A4; margin: 15mm; }
 }

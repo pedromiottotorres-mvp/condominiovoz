@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, X, Loader2, Calendar, DollarSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-
-const CONDOMINIO_ID = 'a0000000-0000-0000-0000-000000000001'
 
 interface DemandaOpcao {
   id: string
@@ -27,17 +25,34 @@ export default function NovaVotacaoPage() {
   const [resultadoParcialVisivel, setResultadoParcialVisivel] = useState(false)
   const [demandasSelecionadas, setDemandasSelecionadas] = useState<string[]>([])
   const [demandasDisponiveis, setDemandasDisponiveis] = useState<DemandaOpcao[]>([])
+  const [condominioId, setCondominioId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
 
   useEffect(() => {
-    supabase
-      .from('demandas')
-      .select('id, titulo, categoria, total_apoios')
-      .eq('condominio_id', CONDOMINIO_ID)
-      .eq('status', 'aberta')
-      .order('total_apoios', { ascending: false })
-      .then(({ data }) => setDemandasDisponiveis(data ?? []))
+    async function carregarDados() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('condominio_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.condominio_id) return
+      setCondominioId(profile.condominio_id)
+
+      const { data } = await supabase
+        .from('demandas')
+        .select('id, titulo, categoria, total_apoios')
+        .eq('condominio_id', profile.condominio_id)
+        .eq('status', 'aberta')
+        .order('total_apoios', { ascending: false })
+
+      setDemandasDisponiveis(data ?? [])
+    }
+    carregarDados()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function adicionarOpcao() {
@@ -48,7 +63,7 @@ export default function NovaVotacaoPage() {
   }
 
   function removerOpcao(opcao: string) {
-    if (opcoes.length <= 2) return // mínimo 2 opções
+    if (opcoes.length <= 2) return
     setOpcoes(opcoes.filter((o) => o !== opcao))
   }
 
@@ -58,10 +73,7 @@ export default function NovaVotacaoPage() {
     )
   }
 
-  // Data mínima: agora + 1 hora
-  const prazoMin = new Date(Date.now() + 3600_000)
-    .toISOString()
-    .slice(0, 16)
+  const prazoMin = new Date(Date.now() + 3600_000).toISOString().slice(0, 16)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -99,7 +111,6 @@ export default function NovaVotacaoPage() {
       return
     }
 
-    // Vincular demandas selecionadas
     if (demandasSelecionadas.length > 0) {
       await supabase.from('votacao_demandas').insert(
         demandasSelecionadas.map((demanda_id) => ({
@@ -113,35 +124,67 @@ export default function NovaVotacaoPage() {
     router.refresh()
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: '#fff',
+    border: '2px solid var(--gray-200)',
+    borderRadius: 'var(--radius-md)',
+    padding: '12px 16px',
+    fontFamily: 'var(--font-body)',
+    fontSize: '0.9375rem',
+    color: 'var(--gray-800)',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  }
+
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen" style={{ background: 'var(--gray-50)' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 px-4 py-3">
+      <header
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--gray-100)',
+          padding: '12px 16px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+        }}
+      >
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
+            style={{ background: 'var(--gray-100)', border: 'none', cursor: 'pointer' }}
           >
-            <ArrowLeft size={20} className="text-gray-600" />
+            <ArrowLeft size={18} style={{ color: 'var(--gray-600)' }} />
           </button>
-          <h1 className="text-base font-bold" style={{ color: '#1e3a5f' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--navy)' }}>
             Criar Votação
           </h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-12">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {erro && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+            <div
+              className="p-4 rounded-xl text-sm"
+              style={{
+                background: '#fff5f5',
+                border: '1px solid #fed7d7',
+                color: '#c53030',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
               {erro}
             </div>
           )}
 
           {/* Título */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Título <span className="text-red-400">*</span>
+            <label className="app-label">
+              Título <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
@@ -149,48 +192,59 @@ export default function NovaVotacaoPage() {
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex: Reforma da piscina"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f]"
+              style={inputStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             />
           </div>
 
           {/* Descrição */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Descrição
-            </label>
+            <label className="app-label">Descrição</label>
             <textarea
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Detalhe a pauta da votação..."
               rows={3}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f] resize-none"
+              style={{ ...inputStyle, resize: 'none' }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             />
           </div>
 
           {/* Prazo */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Prazo de encerramento <span className="text-red-400">*</span>
+            <label className="app-label">
+              Prazo de encerramento <span style={{ color: '#ef4444' }}>*</span>
             </label>
-            <input
-              type="datetime-local"
-              required
-              min={prazoMin}
-              value={prazo}
-              onChange={(e) => setPrazo(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f]"
-            />
+            <div className="relative">
+              <Calendar
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--gray-400)' }}
+              />
+              <input
+                type="datetime-local"
+                required
+                min={prazoMin}
+                value={prazo}
+                onChange={(e) => setPrazo(e.target.value)}
+                style={{ ...inputStyle, paddingLeft: '44px' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
+              />
+            </div>
           </div>
 
           {/* Orçamento */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Orçamento estimado (opcional)
-            </label>
+            <label className="app-label">Orçamento estimado (opcional)</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                R$
-              </span>
+              <DollarSign
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--gray-400)' }}
+              />
               <input
                 type="number"
                 min="0"
@@ -198,36 +252,47 @@ export default function NovaVotacaoPage() {
                 value={orcamento}
                 onChange={(e) => setOrcamento(e.target.value)}
                 placeholder="0,00"
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f]"
+                style={{ ...inputStyle, paddingLeft: '44px' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
               />
             </div>
           </div>
 
           {/* Opções de voto */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="app-label">
               Opções de voto{' '}
-              <span className="text-xs text-gray-400">(mín. 2)</span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontWeight: 400 }}>(mín. 2)</span>
             </label>
+
+            {/* Pills das opções existentes */}
             <div className="flex flex-wrap gap-2 mb-3">
               {opcoes.map((opcao) => (
                 <span
                   key={opcao}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a5f]/10 text-[#1e3a5f] rounded-full text-sm font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
+                  style={{
+                    background: 'var(--navy-pale)',
+                    color: 'var(--navy)',
+                    fontFamily: 'var(--font-body)',
+                  }}
                 >
                   {opcao}
                   {opcoes.length > 2 && (
                     <button
                       type="button"
                       onClick={() => removerOpcao(opcao)}
-                      className="hover:opacity-70"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--navy)', opacity: 0.6, display: 'flex', alignItems: 'center' }}
                     >
-                      <X size={13} />
+                      <X size={12} />
                     </button>
                   )}
                 </span>
               ))}
             </div>
+
+            {/* Adicionar nova opção */}
             <div className="flex gap-2">
               <input
                 type="text"
@@ -235,41 +300,80 @@ export default function NovaVotacaoPage() {
                 onChange={(e) => setNovaOpcao(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarOpcao())}
                 placeholder="Adicionar opção..."
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/30 focus:border-[#1e3a5f]"
+                style={{ ...inputStyle, flex: 1 }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
               />
               <button
                 type="button"
                 onClick={adicionarOpcao}
                 disabled={!novaOpcao.trim()}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-white disabled:opacity-40"
-                style={{ backgroundColor: '#10b981' }}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--mint)',
+                  border: 'none',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: novaOpcao.trim() ? 'pointer' : 'not-allowed',
+                  opacity: novaOpcao.trim() ? 1 : 0.4,
+                  flexShrink: 0,
+                  transition: 'opacity 0.2s',
+                }}
               >
                 <Plus size={18} />
               </button>
             </div>
           </div>
 
-          {/* Resultado parcial */}
-          <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-4">
+          {/* Toggle resultado parcial */}
+          <div
+            className="flex items-center justify-between p-4"
+            style={{
+              background: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--gray-100)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
             <div>
-              <p className="text-sm font-medium text-gray-700">
+              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--font-body)' }}>
                 Resultado parcial visível
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p style={{ fontSize: '0.78rem', color: 'var(--gray-400)', marginTop: '2px', fontFamily: 'var(--font-body)' }}>
                 Moradores veem os votos antes do encerramento
               </p>
             </div>
             <button
               type="button"
               onClick={() => setResultadoParcialVisivel(!resultadoParcialVisivel)}
-              className={`w-11 h-6 rounded-full transition-colors relative ${
-                resultadoParcialVisivel ? 'bg-[#10b981]' : 'bg-gray-200'
-              }`}
+              style={{
+                width: '44px',
+                height: '24px',
+                borderRadius: 'var(--radius-full)',
+                background: resultadoParcialVisivel ? 'var(--mint)' : 'var(--gray-200)',
+                border: 'none',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s var(--ease-spring)',
+                flexShrink: 0,
+              }}
             >
               <span
-                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  resultadoParcialVisivel ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
+                style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: resultadoParcialVisivel ? '22px' : '2px',
+                  width: '20px',
+                  height: '20px',
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                  transition: 'left 0.2s var(--ease-spring)',
+                }}
               />
             </button>
           </div>
@@ -277,9 +381,9 @@ export default function NovaVotacaoPage() {
           {/* Vincular demandas */}
           {demandasDisponiveis.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="app-label">
                 Demandas relacionadas{' '}
-                <span className="text-xs text-gray-400">(opcional)</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontWeight: 400 }}>(opcional)</span>
               </label>
               <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
                 {demandasDisponiveis.map((d) => {
@@ -289,16 +393,20 @@ export default function NovaVotacaoPage() {
                       key={d.id}
                       type="button"
                       onClick={() => toggleDemanda(d.id)}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all ${
-                        selecionada
-                          ? 'border-[#1e3a5f] bg-[#1e3a5f]/5'
-                          : 'border-gray-200 bg-white'
-                      }`}
+                      className="flex items-center justify-between px-4 py-3 text-left"
+                      style={{
+                        borderRadius: 'var(--radius-md)',
+                        border: selecionada ? '2px solid var(--navy)' : '1.5px solid var(--gray-200)',
+                        background: selecionada ? 'var(--navy-pale)' : '#fff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s var(--ease-spring)',
+                      }}
                     >
-                      <span className="text-sm text-gray-700 line-clamp-1">
+                      <span style={{ fontSize: '0.875rem', color: 'var(--gray-700)', fontFamily: 'var(--font-body)' }}
+                            className="line-clamp-1">
                         {d.titulo}
                       </span>
-                      <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                      <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)', marginLeft: '8px', flexShrink: 0 }}>
                         {d.total_apoios} apoios
                       </span>
                     </button>
@@ -312,14 +420,11 @@ export default function NovaVotacaoPage() {
           <button
             type="submit"
             disabled={loading || !titulo.trim() || !prazo}
-            className="w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
-            style={{ backgroundColor: '#1e3a5f' }}
+            className="btn-primary w-full"
+            style={{ marginTop: '4px' }}
           >
             {loading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Criando...
-              </>
+              <><Loader2 size={16} className="animate-spin" /> Criando...</>
             ) : (
               'Criar Votação'
             )}

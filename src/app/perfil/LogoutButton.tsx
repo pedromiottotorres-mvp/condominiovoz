@@ -21,8 +21,24 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 transition-colors disabled:opacity-50"
-      style={{ borderColor: '#ef4444', color: '#ef4444' }}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '14px 24px',
+        borderRadius: 'var(--radius-md)',
+        border: '2px solid #fca5a5',
+        background: '#fff5f5',
+        color: '#dc2626',
+        fontSize: '0.9375rem',
+        fontWeight: 600,
+        fontFamily: 'var(--font-body)',
+        cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.6 : 1,
+        transition: 'all 0.2s var(--ease-spring)',
+      }}
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
       {loading ? 'Saindo...' : 'Sair da conta'}

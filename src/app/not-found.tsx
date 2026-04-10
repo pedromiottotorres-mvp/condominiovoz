@@ -22,7 +22,7 @@ export default function NotFound() {
       </p>
 
       <Link
-        href="/"
+        href="/demandas"
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
         style={{ backgroundColor: '#1e3a5f' }}
       >

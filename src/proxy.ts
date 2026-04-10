@@ -45,12 +45,12 @@ export async function proxy(request: NextRequest) {
       .single()
 
     if (profile?.role !== 'sindico') {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL('/demandas', request.url))
     }
   }
 
   // Rotas protegidas (autenticação obrigatória)
-  const protectedRoutes = ['/', '/demanda', '/votacoes', '/votacao', '/perfil', '/nova-demanda']
+  const protectedRoutes = ['/demandas', '/demanda', '/votacoes', '/votacao', '/perfil', '/nova-demanda']
   const isProtected = protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + '/')
   )
@@ -61,7 +61,7 @@ export async function proxy(request: NextRequest) {
 
   // Usuário logado tentando acessar /login
   if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/demandas', request.url))
   }
 
   return supabaseResponse

@@ -18,8 +18,6 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
-
 interface DemandaRow {
   id: string
   titulo: string
@@ -47,27 +45,17 @@ interface ItemSimulador {
   categoria: string
   status: string
   total_apoios: number
-  custo: string   // string para controle do input
+  custo: string
   incluido: boolean
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const CATEGORIA_CONFIG: Record<
-  string,
-  { label: string; Icon: React.ElementType; cor: string }
-> = {
-  manutencao: { label: 'Manutenção', Icon: Wrench,      cor: '#eab308' },
-  seguranca:  { label: 'Segurança',  Icon: Shield,      cor: '#ef4444' },
-  lazer:      { label: 'Lazer',      Icon: Palmtree,    cor: '#22c55e' },
-  estetica:   { label: 'Estética',   Icon: Paintbrush,  cor: '#a855f7' },
-  estrutural: { label: 'Estrutural', Icon: Building,    cor: '#f97316' },
-  outro:      { label: 'Outro',      Icon: HelpCircle,  cor: '#9ca3af' },
-}
-
-const STATUS_BADGE: Record<string, { label: string; bg: string; text: string }> = {
-  aberta:      { label: 'Aberta',   bg: 'bg-blue-100',  text: 'text-blue-700'  },
-  aprovada:    { label: 'Aprovada', bg: 'bg-green-100', text: 'text-green-700' },
+const CATEGORIA_CONFIG: Record<string, { label: string; Icon: React.ElementType; cssClass: string }> = {
+  manutencao: { label: 'Manutenção', Icon: Wrench,     cssClass: 'badge-manutencao' },
+  seguranca:  { label: 'Segurança',  Icon: Shield,     cssClass: 'badge-seguranca'  },
+  lazer:      { label: 'Lazer',      Icon: Palmtree,   cssClass: 'badge-lazer'      },
+  estetica:   { label: 'Estética',   Icon: Paintbrush, cssClass: 'badge-estetica'   },
+  estrutural: { label: 'Estrutural', Icon: Building,   cssClass: 'badge-estrutural' },
+  outro:      { label: 'Outro',      Icon: HelpCircle, cssClass: 'badge-outro'      },
 }
 
 function fmt(n: number) {
@@ -81,22 +69,14 @@ function parseCusto(s: string): number {
 }
 
 function formatInputCusto(s: string): string {
-  // Permite apenas dígitos, vírgula e ponto
   return s.replace(/[^\d,.]/, '')
 }
 
 const LS_KEY = (condoId: string) => `orcamento_total_${condoId}`
 
-// ─── Componente ──────────────────────────────────────────────────────────────
-
-export default function SimuladorOrcamento({
-  condoId,
-  demandas,
-  itensSalvos,
-}: Props) {
+export default function SimuladorOrcamento({ condoId, demandas, itensSalvos }: Props) {
   const supabase = createClient()
 
-  // Hidratação do orçamento via localStorage
   const [orcamentoStr, setOrcamentoStr] = useState('')
   const [itens, setItens] = useState<ItemSimulador[]>(() =>
     demandas.map((d) => {
@@ -112,17 +92,14 @@ export default function SimuladorOrcamento({
       }
     })
   )
-
   const [salvando, setSalvando] = useState(false)
   const [feedback, setFeedback] = useState<'ok' | 'erro' | null>(null)
 
-  // Carrega orçamento do localStorage depois do mount (evita hydration mismatch)
   useEffect(() => {
     const salvo = localStorage.getItem(LS_KEY(condoId))
     if (salvo) setOrcamentoStr(salvo)
   }, [condoId])
 
-  // Persiste orçamento no localStorage
   function handleOrcamentoChange(valor: string) {
     const clean = formatInputCusto(valor)
     setOrcamentoStr(clean)
@@ -131,48 +108,27 @@ export default function SimuladorOrcamento({
 
   const orcamentoTotal = parseCusto(orcamentoStr)
 
-  // ─── Cálculos derivados ───────────────────────────────────────────────────
-
   const totalAlocado = useMemo(
-    () =>
-      itens
-        .filter((i) => i.incluido)
-        .reduce((s, i) => s + parseCusto(i.custo), 0),
+    () => itens.filter((i) => i.incluido).reduce((s, i) => s + parseCusto(i.custo), 0),
     [itens]
   )
 
   const totalRestante = orcamentoTotal - totalAlocado
-  const percentual =
-    orcamentoTotal > 0
-      ? Math.min(Math.round((totalAlocado / orcamentoTotal) * 100), 100)
-      : 0
+  const percentual = orcamentoTotal > 0 ? Math.min(Math.round((totalAlocado / orcamentoTotal) * 100), 100) : 0
   const estourou = orcamentoTotal > 0 && totalAlocado > orcamentoTotal
   const selecionadas = itens.filter((i) => i.incluido).length
 
-  // ─── Handlers ─────────────────────────────────────────────────────────────
-
   function toggleItem(id: string) {
-    setItens((prev) =>
-      prev.map((i) =>
-        i.demanda_id === id ? { ...i, incluido: !i.incluido } : i
-      )
-    )
+    setItens((prev) => prev.map((i) => i.demanda_id === id ? { ...i, incluido: !i.incluido } : i))
   }
 
   function setCusto(id: string, valor: string) {
-    setItens((prev) =>
-      prev.map((i) =>
-        i.demanda_id === id
-          ? { ...i, custo: formatInputCusto(valor) }
-          : i
-      )
-    )
+    setItens((prev) => prev.map((i) => i.demanda_id === id ? { ...i, custo: formatInputCusto(valor) } : i))
   }
 
   function sugerirAlocacao() {
     if (orcamentoTotal <= 0) return
     let restante = orcamentoTotal
-
     setItens((prev) =>
       prev.map((item) => {
         const custo = parseCusto(item.custo)
@@ -189,13 +145,8 @@ export default function SimuladorOrcamento({
     setSalvando(true)
     setFeedback(null)
 
-    // 1. Apagar itens anteriores do condomínio
-    await supabase
-      .from('orcamento_itens')
-      .delete()
-      .eq('condominio_id', condoId)
+    await supabase.from('orcamento_itens').delete().eq('condominio_id', condoId)
 
-    // 2. Inserir itens com custo definido
     const novosItens = itens
       .filter((i) => parseCusto(i.custo) > 0)
       .map((i, idx) => ({
@@ -208,10 +159,7 @@ export default function SimuladorOrcamento({
       }))
 
     if (novosItens.length > 0) {
-      const { error } = await supabase
-        .from('orcamento_itens')
-        .insert(novosItens)
-
+      const { error } = await supabase.from('orcamento_itens').insert(novosItens)
       if (error) {
         setFeedback('erro')
         setSalvando(false)
@@ -224,57 +172,72 @@ export default function SimuladorOrcamento({
     setTimeout(() => setFeedback(null), 3000)
   }
 
-  // ─── UI ───────────────────────────────────────────────────────────────────
+  const cardStyle: React.CSSProperties = {
+    background: '#fff',
+    borderRadius: 'var(--radius-xl)',
+    border: '1px solid var(--gray-100)',
+    boxShadow: 'var(--shadow-card)',
+    padding: '24px',
+  }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen" style={{ background: 'var(--gray-50)' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 sticky top-0 z-30">
-        <div className="flex items-center justify-between max-w-3xl">
+      <header
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--gray-100)',
+          padding: '16px 24px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 30,
+        }}
+      >
+        <div className="flex items-center justify-between" style={{ maxWidth: '768px' }}>
           <div>
-            <h1 className="text-lg font-bold" style={{ color: '#1e3a5f' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', color: 'var(--navy)' }}>
               Simulador de Orçamento
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Planeje a alocação de recursos para as demandas
+            <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginTop: '2px', fontFamily: 'var(--font-body)' }}>
+              Planeje a alocação de recursos
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {feedback === 'ok' && (
-              <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <span className="flex items-center gap-1.5" style={{ fontSize: '0.8rem', color: 'var(--mint-dark)', fontWeight: 600, fontFamily: 'var(--font-body)' }}>
                 <CheckCircle2 size={14} /> Salvo!
               </span>
             )}
             {feedback === 'erro' && (
-              <span className="text-xs text-red-500 font-medium">Erro ao salvar</span>
+              <span style={{ fontSize: '0.8rem', color: '#dc2626', fontFamily: 'var(--font-body)' }}>Erro ao salvar</span>
             )}
             <button
               onClick={salvarAlocacao}
               disabled={salvando}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50 transition-opacity"
-              style={{ backgroundColor: '#1e3a5f' }}
+              className="btn-primary"
+              style={{ padding: '8px 16px', fontSize: '0.8375rem' }}
             >
-              {salvando ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Save size={14} />
-              )}
+              {salvando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Salvar
             </button>
           </div>
         </div>
       </header>
 
-      <main className="px-4 md:px-8 py-6 max-w-3xl flex flex-col gap-6">
+      <main className="px-4 md:px-6 py-6 flex flex-col gap-5" style={{ maxWidth: '800px' }}>
 
-        {/* ── 1. Input de orçamento ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        {/* Input de orçamento */}
+        <div style={cardStyle}>
+          <label className="app-label" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.72rem' }}>
             Orçamento disponível
           </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-400">
+          <div className="relative mt-2">
+            <span
+              className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}
+            >
               R$
             </span>
             <input
@@ -283,93 +246,111 @@ export default function SimuladorOrcamento({
               value={orcamentoStr}
               onChange={(e) => handleOrcamentoChange(e.target.value)}
               placeholder="0,00"
-              className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#1e3a5f] transition-colors text-gray-800"
+              style={{
+                width: '100%',
+                paddingLeft: '52px',
+                paddingRight: '16px',
+                paddingTop: '16px',
+                paddingBottom: '16px',
+                fontSize: '1.75rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-body)',
+                color: 'var(--navy)',
+                background: 'var(--gray-50)',
+                border: '2px solid var(--gray-200)',
+                borderRadius: 'var(--radius-md)',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             />
           </div>
           {orcamentoTotal > 0 && (
-            <p className="text-xs text-gray-400 mt-2">
+            <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginTop: '8px', fontFamily: 'var(--font-body)' }}>
               {fmt(orcamentoTotal)}
             </p>
           )}
         </div>
 
-        {/* ── 2. Barra de progresso ── */}
+        {/* Barra de progresso */}
         {orcamentoTotal > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div style={cardStyle}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>
                 Alocação
               </span>
               {estourou ? (
-                <span className="flex items-center gap-1 text-xs font-semibold text-red-500">
+                <span className="flex items-center gap-1" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', fontFamily: 'var(--font-body)' }}>
                   <AlertTriangle size={13} />
                   Orçamento excedido!
                 </span>
               ) : (
-                <span className="text-xs text-gray-500">
-                  {percentual}% alocado
+                <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
+                  <strong style={{ color: 'var(--navy)' }}>{percentual}%</strong> alocado
                 </span>
               )}
             </div>
 
             {/* Barra */}
-            <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+            <div style={{ height: '12px', background: 'var(--gray-100)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  estourou ? 'bg-red-500' : 'bg-[#10b981]'
-                }`}
                 style={{
-                  width: `${
-                    orcamentoTotal > 0
-                      ? Math.min((totalAlocado / orcamentoTotal) * 100, 100)
-                      : 0
-                  }%`,
+                  height: '100%',
+                  borderRadius: 'var(--radius-full)',
+                  background: estourou
+                    ? '#ef4444'
+                    : 'linear-gradient(90deg, var(--mint) 0%, var(--mint-dark) 100%)',
+                  width: `${orcamentoTotal > 0 ? Math.min((totalAlocado / orcamentoTotal) * 100, 100) : 0}%`,
+                  transition: 'width 0.4s var(--ease-spring)',
                 }}
               />
             </div>
 
-            {/* Texto */}
-            <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-              <span>
-                <span className={`font-semibold ${estourou ? 'text-red-600' : 'text-gray-800'}`}>
-                  {fmt(totalAlocado)}
-                </span>{' '}
-                alocados
+            <div className="flex items-center justify-between mt-2">
+              <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
+                <strong style={{ color: estourou ? '#dc2626' : 'var(--navy)' }}>{fmt(totalAlocado)}</strong> alocados
               </span>
-              <span>
-                de{' '}
-                <span className="font-semibold text-gray-800">
-                  {fmt(orcamentoTotal)}
-                </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                de <strong style={{ color: 'var(--gray-700)' }}>{fmt(orcamentoTotal)}</strong>
               </span>
             </div>
 
             {totalRestante > 0 && !estourou && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p style={{ fontSize: '0.78rem', color: 'var(--mint-dark)', marginTop: '4px', fontFamily: 'var(--font-body)' }}>
                 Sobra: {fmt(totalRestante)}
               </p>
             )}
             {estourou && (
-              <p className="text-xs text-red-400 mt-1">
+              <p style={{ fontSize: '0.78rem', color: '#dc2626', marginTop: '4px', fontFamily: 'var(--font-body)' }}>
                 Excesso: {fmt(Math.abs(totalRestante))}
               </p>
             )}
           </div>
         )}
 
-        {/* ── 3. Lista de demandas ── */}
+        {/* Lista de demandas */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--navy)' }}>
               Demandas ({itens.length})
             </h2>
             <button
               onClick={sugerirAlocacao}
               disabled={orcamentoTotal <= 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5"
               style={{
-                borderColor: '#10b981',
-                color: '#10b981',
+                padding: '7px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1.5px solid var(--mint)',
+                background: 'transparent',
+                color: 'var(--mint-dark)',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                cursor: orcamentoTotal <= 0 ? 'not-allowed' : 'pointer',
+                opacity: orcamentoTotal <= 0 ? 0.4 : 1,
+                transition: 'background 0.2s',
               }}
             >
               <Wand2 size={13} />
@@ -378,8 +359,11 @@ export default function SimuladorOrcamento({
           </div>
 
           {itens.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-              <p className="text-sm text-gray-400">
+            <div
+              className="flex flex-col items-center justify-center py-12"
+              style={{ ...cardStyle, textAlign: 'center' }}
+            >
+              <p style={{ fontSize: '0.9rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
                 Nenhuma demanda aberta ou aprovada encontrada.
               </p>
             </div>
@@ -387,82 +371,94 @@ export default function SimuladorOrcamento({
             itens.map((item) => {
               const cat = CATEGORIA_CONFIG[item.categoria] ?? CATEGORIA_CONFIG.outro
               const { Icon } = cat
-              const statusBadge = STATUS_BADGE[item.status] ?? STATUS_BADGE.aberta
               const custoNum = parseCusto(item.custo)
 
               return (
                 <div
                   key={item.demanda_id}
-                  className={`bg-white rounded-2xl border shadow-sm transition-all ${
-                    item.incluido
-                      ? 'border-[#10b981] ring-1 ring-[#10b981]/20'
-                      : 'border-gray-100'
-                  }`}
+                  style={{
+                    background: '#fff',
+                    borderRadius: 'var(--radius-xl)',
+                    border: item.incluido ? '1.5px solid var(--mint)' : '1px solid var(--gray-100)',
+                    boxShadow: item.incluido ? '0 0 0 3px rgba(16,185,129,0.08)' : 'var(--shadow-card)',
+                    transition: 'all 0.2s var(--ease-spring)',
+                  }}
                 >
                   <div className="p-4 flex gap-3">
                     {/* Checkbox */}
                     <button
                       onClick={() => toggleItem(item.demanda_id)}
-                      className="flex-shrink-0 mt-0.5 text-gray-300 hover:text-[#10b981] transition-colors"
+                      style={{
+                        flexShrink: 0,
+                        marginTop: '2px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: item.incluido ? 'var(--mint)' : 'var(--gray-300)',
+                        transition: 'color 0.2s',
+                      }}
                     >
-                      {item.incluido ? (
-                        <CheckSquare size={20} className="text-[#10b981]" />
-                      ) : (
-                        <Square size={20} />
-                      )}
+                      {item.incluido
+                        ? <CheckSquare size={20} />
+                        : <Square size={20} />
+                      }
                     </button>
 
                     {/* Conteúdo */}
                     <div className="flex-1 min-w-0">
-                      {/* Badges */}
-                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        <span
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: cat.cor + '20',
-                            color: cat.cor,
-                          }}
-                        >
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                        <span className={`badge ${cat.cssClass}`}>
                           <Icon size={10} />
                           {cat.label}
                         </span>
-                        <span
-                          className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}
-                        >
-                          {statusBadge.label}
-                        </span>
-                        <span className="text-xs text-gray-400">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
                           {item.total_apoios} apoios
                         </span>
                       </div>
 
-                      {/* Título */}
-                      <p className="text-sm font-semibold text-gray-800 leading-snug">
+                      <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--navy)', lineHeight: 1.4, fontFamily: 'var(--font-body)' }}>
                         {item.titulo}
                       </p>
 
                       {/* Input de custo */}
-                      <div className="mt-3 flex items-center gap-2">
-                        <label className="text-xs text-gray-400 flex-shrink-0">
+                      <div className="flex items-center gap-2 mt-3">
+                        <label style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)', flexShrink: 0 }}>
                           Custo estimado
                         </label>
-                        <div className="relative flex-1 max-w-[160px]">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        <div className="relative" style={{ maxWidth: '160px', flex: 1 }}>
+                          <span
+                            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}
+                          >
                             R$
                           </span>
                           <input
                             type="text"
                             inputMode="decimal"
                             value={item.custo}
-                            onChange={(e) =>
-                              setCusto(item.demanda_id, e.target.value)
-                            }
+                            onChange={(e) => setCusto(item.demanda_id, e.target.value)}
                             placeholder="0,00"
-                            className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]/20"
+                            style={{
+                              width: '100%',
+                              paddingLeft: '32px',
+                              paddingRight: '8px',
+                              paddingTop: '7px',
+                              paddingBottom: '7px',
+                              border: '1.5px solid var(--gray-200)',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-body)',
+                              color: 'var(--gray-700)',
+                              outline: 'none',
+                              transition: 'border-color 0.2s',
+                            }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--navy)' }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--gray-200)' }}
                           />
                         </div>
                         {custoNum > 0 && (
-                          <span className="text-xs text-gray-500">
+                          <span style={{ fontSize: '0.78rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
                             {fmt(custoNum)}
                           </span>
                         )}
@@ -475,45 +471,46 @@ export default function SimuladorOrcamento({
           )}
         </div>
 
-        {/* ── 4. Resumo final ── */}
+        {/* Resumo final */}
         <div
-          className="rounded-2xl border p-5 flex flex-col gap-4"
           style={{
-            backgroundColor: '#1e3a5f',
-            borderColor: '#1e3a5f',
+            borderRadius: 'var(--radius-xl)',
+            background: 'var(--navy)',
+            padding: '24px',
           }}
         >
-          <h2 className="text-sm font-semibold text-white">Resumo da Alocação</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: '#fff', marginBottom: '16px' }}>
+            Resumo da Alocação
+          </h2>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {[
-              {
-                label: 'Selecionadas',
-                value: `${selecionadas}`,
-                sub: 'demandas',
-              },
-              {
-                label: 'Alocado',
-                value: fmt(totalAlocado),
-                sub: orcamentoTotal > 0 ? `${percentual}% do total` : '—',
-              },
-              {
-                label: totalRestante >= 0 ? 'Restante' : 'Excesso',
-                value: fmt(Math.abs(totalRestante)),
-                sub: orcamentoTotal > 0 ? 'disponível' : '—',
-                alert: estourou,
-              },
+              { label: 'Selecionadas', value: `${selecionadas}`,     sub: 'demandas'           },
+              { label: 'Alocado',      value: fmt(totalAlocado),     sub: orcamentoTotal > 0 ? `${percentual}% do total` : '—' },
+              { label: totalRestante >= 0 ? 'Restante' : 'Excesso',
+                value: fmt(Math.abs(totalRestante)),                  sub: orcamentoTotal > 0 ? 'disponível' : '—',
+                alert: estourou },
             ].map(({ label, value, sub, alert }) => (
-              <div key={label} className="bg-white/10 rounded-xl p-3 text-center">
-                <p
-                  className={`text-base font-bold leading-tight ${
-                    alert ? 'text-red-300' : 'text-white'
-                  }`}
-                >
+              <div
+                key={label}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '12px',
+                  textAlign: 'center',
+                }}
+              >
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.1rem',
+                  color: alert ? '#fca5a5' : '#fff',
+                  lineHeight: 1,
+                  marginBottom: '4px',
+                }}>
                   {value}
                 </p>
-                <p className="text-xs text-white/60 mt-0.5">{label}</p>
-                <p className="text-xs text-white/40">{sub}</p>
+                <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)' }}>{label}</p>
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-body)' }}>{sub}</p>
               </div>
             ))}
           </div>
@@ -522,29 +519,53 @@ export default function SimuladorOrcamento({
             <button
               onClick={salvarAlocacao}
               disabled={salvando || selecionadas === 0}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-white text-[#1e3a5f] disabled:opacity-50 transition-opacity"
+              className="flex-1 flex items-center justify-center gap-2"
+              style={{
+                padding: '13px',
+                borderRadius: 'var(--radius-md)',
+                background: '#fff',
+                color: 'var(--navy)',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-body)',
+                border: 'none',
+                cursor: salvando || selecionadas === 0 ? 'not-allowed' : 'pointer',
+                opacity: salvando || selecionadas === 0 ? 0.5 : 1,
+                transition: 'opacity 0.2s',
+              }}
             >
-              {salvando ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <Save size={15} />
-              )}
-              Salvar alocação
+              {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              Salvar Proposta de Orçamento
             </button>
-
             <button
               disabled
               title="Em breve"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-white/30 text-white/50 cursor-not-allowed"
+              style={{
+                flex: 1,
+                padding: '13px',
+                borderRadius: 'var(--radius-md)',
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: '0.9rem',
+                fontFamily: 'var(--font-body)',
+                border: '1.5px solid rgba(255,255,255,0.2)',
+                cursor: 'not-allowed',
+              }}
             >
               Incluir no relatório
             </button>
           </div>
 
           {estourou && (
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/20 rounded-xl">
-              <AlertTriangle size={14} className="text-red-300 flex-shrink-0" />
-              <p className="text-xs text-red-200">
+            <div
+              className="flex items-center gap-2 mt-3 p-3"
+              style={{
+                background: 'rgba(239,68,68,0.2)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <AlertTriangle size={14} style={{ color: '#fca5a5', flexShrink: 0 }} />
+              <p style={{ fontSize: '0.8rem', color: '#fca5a5', fontFamily: 'var(--font-body)' }}>
                 O total alocado excede o orçamento disponível. Revise os custos ou desmarque demandas.
               </p>
             </div>

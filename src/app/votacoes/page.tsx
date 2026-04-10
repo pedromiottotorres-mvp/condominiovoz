@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Vote, Clock, CheckCircle2, DollarSign } from 'lucide-react'
-import { formatDistanceToNow, isPast, format } from 'date-fns'
+import { Plus, Vote, Clock, CheckCircle2, DollarSign, ChevronRight } from 'lucide-react'
+import { formatDistanceToNow, isPast } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/BottomNav'
@@ -20,13 +20,13 @@ interface Votacao {
 function ResultadoResumo({ resultado }: { resultado: Record<string, number> }) {
   const entries = Object.entries(resultado).filter(([k]) => k !== 'quorum')
   const total = entries.reduce((s, [, v]) => s + v, 0)
-  if (total === 0) return <span className="text-xs text-gray-400">Sem votos</span>
+  if (total === 0) return <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Sem votos</span>
 
   const [opcaoVencedora, qtdVencedora] = entries.reduce((a, b) => (b[1] > a[1] ? b : a))
   const pct = Math.round((qtdVencedora / total) * 100)
 
   return (
-    <span className="text-xs text-gray-500">
+    <span style={{ fontSize: '0.8rem', color: 'var(--mint-dark)', fontWeight: 600, fontFamily: 'var(--font-body)' }}>
       {opcaoVencedora}: {pct}%
     </span>
   )
@@ -55,7 +55,6 @@ export default async function VotacoesPage() {
     .eq('condominio_id', profile?.condominio_id)
     .order('created_at', { ascending: false })
 
-  // Contagem de votos por votação
   const ids = (rows ?? []).map((v) => v.id)
   const { data: contagens } = ids.length
     ? await supabase
@@ -79,35 +78,63 @@ export default async function VotacoesPage() {
   const encerradas = votacoes.filter((v) => v.status === 'encerrada')
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24">
+    <div className="min-h-screen pb-24" style={{ background: 'var(--gray-50)' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 px-4 py-3">
+      <header className="app-header">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <h1 className="text-base font-bold" style={{ color: '#1e3a5f' }}>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.375rem',
+              color: 'var(--navy)',
+            }}
+          >
             Votações
           </h1>
           {isSindico && (
             <Link
               href="/dashboard/nova-votacao"
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white shadow-sm"
-              style={{ backgroundColor: '#10b981' }}
+              className="flex items-center gap-2"
+              style={{
+                background: 'var(--navy)',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8375rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                textDecoration: 'none',
+              }}
             >
-              <Plus size={20} strokeWidth={2.5} />
+              <Plus size={15} strokeWidth={2.5} />
+              Nova
             </Link>
           )}
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-4 flex flex-col gap-6">
+      <main className="max-w-lg mx-auto px-4 pt-5 flex flex-col gap-6">
         {/* Abertas */}
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Abertas
-          </h2>
+          <p
+            className="uppercase tracking-wide mb-3"
+            style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}
+          >
+            Em andamento
+          </p>
           {abertas.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-2xl border border-gray-100">
-              <Vote size={32} className="mx-auto text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400">Nenhuma votação aberta</p>
+            <div
+              className="flex flex-col items-center justify-center py-12 text-center"
+              style={{
+                background: '#fff',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--gray-100)',
+              }}
+            >
+              <Vote size={32} style={{ color: 'var(--gray-200)', marginBottom: '8px' }} />
+              <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                Nenhuma votação aberta
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -121,9 +148,12 @@ export default async function VotacoesPage() {
         {/* Encerradas */}
         {encerradas.length > 0 && (
           <section>
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <p
+              className="uppercase tracking-wide mb-3"
+              style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}
+            >
               Encerradas
-            </h2>
+            </p>
             <div className="flex flex-col gap-3">
               {encerradas.map((v) => (
                 <VotacaoCard key={v.id} votacao={v} />
@@ -149,60 +179,83 @@ function VotacaoCard({ votacao }: { votacao: Votacao }) {
   return (
     <Link
       href={`/votacao/${votacao.id}`}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 block hover:border-gray-200 transition-colors"
+      style={{
+        display: 'block',
+        background: '#fff',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--gray-100)',
+        boxShadow: 'var(--shadow-card)',
+        padding: '18px 20px',
+        textDecoration: 'none',
+        transition: 'box-shadow 0.25s var(--ease-spring), border-color 0.25s var(--ease-spring)',
+      }}
     >
-      {/* Status badge */}
-      <div className="flex items-center justify-between mb-2">
+      {/* Top row */}
+      <div className="flex items-center justify-between mb-3">
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-            encerrada
-              ? 'bg-gray-100 text-gray-500'
-              : 'bg-green-100 text-green-700'
-          }`}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+          style={{
+            fontFamily: 'var(--font-body)',
+            background: encerrada ? 'var(--gray-100)' : 'var(--mint-pale)',
+            color: encerrada ? 'var(--gray-500)' : 'var(--mint-dark)',
+          }}
         >
-          {encerrada ? (
-            <CheckCircle2 size={11} />
-          ) : (
-            <Vote size={11} />
-          )}
+          {encerrada ? <CheckCircle2 size={11} /> : <Vote size={11} />}
           {encerrada ? 'Encerrada' : 'Aberta'}
         </span>
-
-        <span className="text-xs text-gray-400">
-          {votacao._votos_count}{' '}
-          {votacao._votos_count === 1 ? 'voto' : 'votos'}
+        <span
+          style={{
+            fontSize: '0.78rem',
+            color: 'var(--gray-400)',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          {votacao._votos_count} {votacao._votos_count === 1 ? 'voto' : 'votos'}
         </span>
       </div>
 
       {/* Título */}
-      <h3 className="text-sm font-semibold text-gray-800 leading-snug">
+      <h3
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontWeight: 700,
+          fontSize: '0.9375rem',
+          color: 'var(--navy)',
+          lineHeight: 1.4,
+          marginBottom: '10px',
+        }}
+      >
         {votacao.titulo}
       </h3>
 
-      {/* Prazo */}
-      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-        <Clock size={11} />
-        <span>{prazoTexto}</span>
-      </div>
-
-      {/* Orçamento */}
-      {votacao.orcamento_estimado && (
-        <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-          <DollarSign size={11} />
-          <span>
-            Orçamento:{' '}
-            {votacao.orcamento_estimado.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            })}
-          </span>
+      {/* Meta */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5" style={{ color: 'var(--gray-400)' }}>
+          <Clock size={12} />
+          <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-body)' }}>{prazoTexto}</span>
         </div>
-      )}
+
+        {votacao.orcamento_estimado && (
+          <div className="flex items-center gap-1.5" style={{ color: 'var(--gray-400)' }}>
+            <DollarSign size={12} />
+            <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-body)' }}>
+              {votacao.orcamento_estimado.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Resultado resumido (encerrada) */}
       {encerrada && votacao.resultado && (
-        <div className="mt-2 pt-2 border-t border-gray-50">
+        <div
+          className="flex items-center justify-between mt-3 pt-3"
+          style={{ borderTop: '1px solid var(--gray-100)' }}
+        >
           <ResultadoResumo resultado={votacao.resultado} />
+          <ChevronRight size={14} style={{ color: 'var(--gray-300)' }} />
         </div>
       )}
     </Link>

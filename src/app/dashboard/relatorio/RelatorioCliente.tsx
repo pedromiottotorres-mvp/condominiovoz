@@ -73,120 +73,166 @@ export default function RelatorioCliente({
   const totalOrcamento = orcamento.reduce((s, i) => s + Number(i.custo_estimado), 0)
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen" style={{ background: 'var(--gray-50)' }}>
       {/* Barra de ação — oculta no print */}
-      <header className="no-print bg-white border-b border-gray-100 px-4 md:px-8 py-4 sticky top-0 z-30">
-        <div className="flex items-center justify-between max-w-3xl">
+      <header
+        className="no-print"
+        style={{
+          background: '#fff',
+          borderBottom: '1px solid var(--gray-100)',
+          padding: '20px 24px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 30,
+        }}
+      >
+        <div className="flex items-center justify-between" style={{ maxWidth: '768px' }}>
           <div>
-            <h1 className="text-lg font-bold" style={{ color: '#1e3a5f' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--navy)' }}>
               Relatório para Assembleia
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">Preview do documento</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginTop: '2px', fontFamily: 'var(--font-body)' }}>
+              Preview do documento
+            </p>
           </div>
           <button
             onClick={imprimir}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white"
-            style={{ backgroundColor: '#1e3a5f' }}
+            className="btn-primary"
+            style={{ padding: '10px 20px', fontSize: '0.875rem' }}
           >
             <Printer size={15} />
-            Baixar / Imprimir PDF
+            Gerar PDF
           </button>
         </div>
       </header>
 
       {/* Documento */}
-      <main className="px-4 md:px-8 py-8 max-w-3xl">
+      <main className="px-4 md:px-8 py-8" style={{ maxWidth: '800px' }}>
         <div
           id="relatorio-documento"
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden print-documento"
+          className="print-documento overflow-hidden"
+          style={{
+            background: '#fff',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--gray-100)',
+            boxShadow: 'var(--shadow-float)',
+          }}
         >
-          {/* ── Header do documento ── */}
-          <div
-            className="px-8 py-8"
-            style={{ backgroundColor: '#1e3a5f' }}
-          >
+          {/* Header do documento */}
+          <div style={{ background: 'var(--navy)', padding: '32px' }}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Building2 size={20} className="text-white/60" />
-                  <span className="text-white/60 text-sm">CondomínioVoz</span>
+                  <Building2 size={18} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', fontFamily: 'var(--font-body)' }}>
+                    CondomínioVoz
+                  </span>
                 </div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', color: '#fff', lineHeight: 1.2 }}>
                   Relatório de Assembleia
                 </h2>
-                <p className="text-white/70 mt-1 text-sm">{condo.nome}</p>
+                <p style={{ color: 'rgba(255,255,255,0.7)', marginTop: '4px', fontSize: '0.9rem', fontFamily: 'var(--font-body)' }}>
+                  {condo.nome}
+                </p>
                 {condo.endereco && (
-                  <p className="text-white/50 text-xs mt-0.5">{condo.endereco}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', marginTop: '2px', fontFamily: 'var(--font-body)' }}>
+                    {condo.endereco}
+                  </p>
                 )}
               </div>
               <div className="text-right">
-                <p className="text-white/60 text-xs">Gerado em</p>
-                <p className="text-white font-semibold text-sm">{dataRelatorio}</p>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', fontFamily: 'var(--font-body)' }}>Gerado em</p>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem', fontFamily: 'var(--font-body)' }}>
+                  {dataRelatorio}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="px-8 py-8 flex flex-col gap-10">
+          <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
 
-            {/* ── Seção 1: Resumo ── */}
+            {/* Seção 1: Resumo */}
             <section>
               <SectionTitle numero="1" titulo="Resumo do Condomínio" />
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 {[
-                  { label: 'Total de demandas', value: resumo.total },
-                  { label: 'Demandas abertas', value: resumo.abertas },
-                  { label: 'Demandas concluídas', value: resumo.concluidas },
-                  { label: 'Em andamento', value: resumo.emAndamento },
-                  { label: 'Moradores cadastrados', value: resumo.totalMoradores },
-                  { label: 'Votações realizadas', value: resumo.votacoesTotal },
+                  { label: 'Total de demandas',     value: resumo.total          },
+                  { label: 'Demandas abertas',       value: resumo.abertas        },
+                  { label: 'Demandas concluídas',    value: resumo.concluidas     },
+                  { label: 'Em andamento',           value: resumo.emAndamento    },
+                  { label: 'Moradores cadastrados',  value: resumo.totalMoradores },
+                  { label: 'Votações realizadas',    value: resumo.votacoesTotal  },
                 ].map(({ label, value }) => (
                   <div
                     key={label}
-                    className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100"
+                    style={{
+                      background: 'var(--gray-50)',
+                      borderRadius: 'var(--radius-lg)',
+                      border: '1px solid var(--gray-100)',
+                      padding: '16px',
+                      textAlign: 'center',
+                    }}
                   >
-                    <p className="text-2xl font-bold text-[#1e3a5f]">{value}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', color: 'var(--navy)', lineHeight: 1 }}>
+                      {value}
+                    </p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--gray-500)', marginTop: '4px', fontFamily: 'var(--font-body)' }}>
+                      {label}
+                    </p>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* ── Seção 2: Top 10 demandas ── */}
+            {/* Seção 2: Top 10 demandas */}
             <section>
               <SectionTitle numero="2" titulo="Top 10 Demandas por Apoios" />
               {top10.length === 0 ? (
-                <p className="text-sm text-gray-400 mt-3">Nenhuma demanda cadastrada.</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', marginTop: '12px', fontFamily: 'var(--font-body)' }}>
+                  Nenhuma demanda cadastrada.
+                </p>
               ) : (
                 <table className="w-full mt-4 text-sm border-collapse">
                   <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 rounded-tl-lg">
-                        #
-                      </th>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">
-                        Demanda
-                      </th>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">
-                        Categoria
-                      </th>
-                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 rounded-tr-lg">
-                        Apoios
-                      </th>
+                    <tr style={{ background: 'var(--gray-50)' }}>
+                      {['#', 'Demanda', 'Categoria', 'Apoios'].map((col, i) => (
+                        <th
+                          key={col}
+                          className={i === 3 ? 'text-right' : 'text-left'}
+                          style={{
+                            padding: '10px 12px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: 'var(--gray-400)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            fontFamily: 'var(--font-body)',
+                          }}
+                        >
+                          {col}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {top10.map((d, i) => (
-                      <tr key={d.id} className={i % 2 === 0 ? '' : 'bg-gray-50/50'}>
-                        <td className="px-3 py-2.5 text-gray-400 text-xs font-mono">
+                      <tr
+                        key={d.id}
+                        style={{
+                          borderBottom: '1px solid var(--gray-100)',
+                          background: i % 2 !== 0 ? 'var(--gray-50)' : 'transparent',
+                        }}
+                      >
+                        <td style={{ padding: '10px 12px', color: 'var(--gray-400)', fontSize: '0.78rem', fontFamily: 'var(--font-body)' }}>
                           {String(i + 1).padStart(2, '0')}
                         </td>
-                        <td className="px-3 py-2.5 text-gray-700 font-medium">
+                        <td style={{ padding: '10px 12px', color: 'var(--gray-700)', fontWeight: 500, fontFamily: 'var(--font-body)' }}>
                           {d.titulo}
                         </td>
-                        <td className="px-3 py-2.5 text-gray-500 text-xs">
+                        <td style={{ padding: '10px 12px', color: 'var(--gray-500)', fontSize: '0.8rem', fontFamily: 'var(--font-body)' }}>
                           {CATEGORIA_LABELS[d.categoria] ?? d.categoria}
                         </td>
-                        <td className="px-3 py-2.5 text-right font-bold text-[#1e3a5f]">
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--navy)', fontFamily: 'var(--font-body)' }}>
                           {d.total_apoios}
                         </td>
                       </tr>
@@ -196,42 +242,54 @@ export default function RelatorioCliente({
               )}
             </section>
 
-            {/* ── Seção 3: Resultados das votações ── */}
+            {/* Seção 3: Resultados das votações */}
             <section>
               <SectionTitle numero="3" titulo="Resultados das Votações" />
               {votacoes.length === 0 ? (
-                <p className="text-sm text-gray-400 mt-3">
+                <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', marginTop: '12px', fontFamily: 'var(--font-body)' }}>
                   Nenhuma votação encerrada.
                 </p>
               ) : (
-                <div className="mt-4 flex flex-col gap-5">
+                <div className="mt-4 flex flex-col gap-4">
                   {votacoes.map((v, i) => (
                     <div
                       key={i}
-                      className="border border-gray-100 rounded-xl overflow-hidden"
+                      style={{
+                        border: '1px solid var(--gray-100)',
+                        borderRadius: 'var(--radius-lg)',
+                        overflow: 'hidden',
+                      }}
                     >
-                      <div className="bg-gray-50 px-4 py-2.5 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-700">
+                      <div
+                        className="flex items-center justify-between px-4 py-3"
+                        style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-100)' }}
+                      >
+                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--font-body)' }}>
                           {v.titulo}
                         </p>
-                        <span className="text-xs text-gray-400">
-                          {v.totalVotos} votos · Quórum: {v.quorum}%
-                          {v.quorum >= 50 ? ' ✓' : ' ✗'}
+                        <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                          {v.totalVotos} votos · Quórum: {v.quorum}%{v.quorum >= 50 ? ' ✓' : ' ✗'}
                         </span>
                       </div>
-                      <div className="px-4 py-3 flex flex-col gap-2">
+                      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {v.opcoes.map(({ opcao, votos, pct }) => (
                           <div key={opcao}>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="font-medium text-gray-700">{opcao}</span>
-                              <span className="text-gray-500">
+                            <div className="flex justify-between mb-1">
+                              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--gray-700)', fontFamily: 'var(--font-body)' }}>
+                                {opcao}
+                              </span>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
                                 {pct}% ({votos} votos)
                               </span>
                             </div>
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div style={{ height: '8px', background: 'var(--gray-100)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                               <div
-                                className="h-full rounded-full bg-[#1e3a5f]"
-                                style={{ width: `${pct}%` }}
+                                style={{
+                                  height: '100%',
+                                  width: `${pct}%`,
+                                  borderRadius: 'var(--radius-full)',
+                                  background: 'linear-gradient(90deg, var(--navy) 0%, var(--navy-light) 100%)',
+                                }}
                               />
                             </div>
                           </div>
@@ -243,87 +301,117 @@ export default function RelatorioCliente({
               )}
             </section>
 
-            {/* ── Seção 4: Orçamento ── */}
+            {/* Seção 4: Orçamento */}
             <section>
               <SectionTitle numero="4" titulo="Proposta de Alocação de Orçamento" />
               {orcamento.length === 0 ? (
-                <p className="text-sm text-gray-400 mt-3">
+                <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', marginTop: '12px', fontFamily: 'var(--font-body)' }}>
                   Nenhuma alocação salva. Acesse o{' '}
-                  <span className="text-[#1e3a5f]">Simulador de Orçamento</span> para criar
-                  uma proposta.
+                  <span style={{ color: 'var(--navy)', fontWeight: 600 }}>Simulador de Orçamento</span>{' '}
+                  para criar uma proposta.
                 </p>
               ) : (
-                <>
-                  <table className="w-full mt-4 text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 rounded-tl-lg">
-                          Demanda
+                <table className="w-full mt-4 text-sm border-collapse">
+                  <thead>
+                    <tr style={{ background: 'var(--gray-50)' }}>
+                      {['Demanda', 'Custo estimado'].map((col, i) => (
+                        <th
+                          key={col}
+                          className={i === 1 ? 'text-right' : 'text-left'}
+                          style={{
+                            padding: '10px 12px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: 'var(--gray-400)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            fontFamily: 'var(--font-body)',
+                          }}
+                        >
+                          {col}
                         </th>
-                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 rounded-tr-lg">
-                          Custo estimado
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {orcamento.map((item, i) => (
-                        <tr key={i} className={i % 2 === 0 ? '' : 'bg-gray-50/50'}>
-                          <td className="px-3 py-2.5 text-gray-700">{item.descricao}</td>
-                          <td className="px-3 py-2.5 text-right font-semibold text-gray-800">
-                            {fmt(Number(item.custo_estimado))}
-                          </td>
-                        </tr>
                       ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 border-gray-200">
-                        <td className="px-3 py-2.5 text-sm font-bold text-gray-700">
-                          Total
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orcamento.map((item, i) => (
+                      <tr
+                        key={i}
+                        style={{
+                          borderBottom: '1px solid var(--gray-100)',
+                          background: i % 2 !== 0 ? 'var(--gray-50)' : 'transparent',
+                        }}
+                      >
+                        <td style={{ padding: '10px 12px', color: 'var(--gray-700)', fontFamily: 'var(--font-body)' }}>
+                          {item.descricao}
                         </td>
-                        <td className="px-3 py-2.5 text-right text-sm font-bold text-[#1e3a5f]">
-                          {fmt(totalOrcamento)}
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--gray-800)', fontFamily: 'var(--font-body)' }}>
+                          {fmt(Number(item.custo_estimado))}
                         </td>
                       </tr>
-                    </tfoot>
-                  </table>
-                </>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid var(--gray-200)' }}>
+                      <td style={{ padding: '12px', fontWeight: 700, color: 'var(--gray-700)', fontFamily: 'var(--font-body)' }}>
+                        Total
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, color: 'var(--navy)', fontFamily: 'var(--font-display)', fontSize: '1rem' }}>
+                        {fmt(totalOrcamento)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               )}
             </section>
 
-            {/* ── Seção 5: Índice de participação ── */}
+            {/* Seção 5: Índice de participação */}
             <section>
               <SectionTitle numero="5" titulo="Índice de Participação" />
-              <div className="mt-4 bg-gray-50 rounded-xl p-5 border border-gray-100">
+              <div
+                style={{
+                  marginTop: '16px',
+                  background: 'var(--gray-50)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--gray-100)',
+                  padding: '20px',
+                }}
+              >
                 {resumo.participacao !== null ? (
                   <>
-                    <div className="flex items-end gap-2 mb-3">
-                      <p
-                        className="text-4xl font-bold"
-                        style={{ color: resumo.participacao >= 50 ? '#10b981' : '#f59e0b' }}
-                      >
+                    <div className="flex items-end gap-3 mb-4">
+                      <p style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '3rem',
+                        lineHeight: 1,
+                        color: resumo.participacao >= 50 ? 'var(--mint-dark)' : '#d97706',
+                      }}>
                         {resumo.participacao}%
                       </p>
-                      <p className="text-sm text-gray-500 mb-1">
+                      <p style={{ fontSize: '0.875rem', color: 'var(--gray-500)', marginBottom: '4px', fontFamily: 'var(--font-body)' }}>
                         de participação na última votação
                       </p>
                     </div>
-                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div style={{ height: '12px', background: 'var(--gray-200)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                       <div
-                        className="h-full rounded-full"
                         style={{
+                          height: '100%',
                           width: `${resumo.participacao}%`,
-                          backgroundColor: resumo.participacao >= 50 ? '#10b981' : '#f59e0b',
+                          borderRadius: 'var(--radius-full)',
+                          background: resumo.participacao >= 50
+                            ? 'linear-gradient(90deg, var(--mint) 0%, var(--mint-dark) 100%)'
+                            : 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
                         }}
                       />
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginTop: '8px', fontFamily: 'var(--font-body)' }}>
                       {resumo.participacao >= 50
                         ? '✓ Quórum atingido (mínimo 50%)'
                         : '✗ Quórum não atingido (mínimo 50%)'}
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-gray-400">
+                  <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
                     Sem votações encerradas para calcular participação.
                   </p>
                 )}
@@ -332,13 +420,18 @@ export default function RelatorioCliente({
 
           </div>
 
-          {/* ── Footer do documento ── */}
-          <div className="px-8 py-5 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
+          {/* Footer do documento */}
+          <div
+            className="flex items-center justify-between px-8 py-4"
+            style={{ borderTop: '1px solid var(--gray-100)' }}
+          >
+            <p style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
               Gerado por{' '}
-              <span className="font-semibold text-[#1e3a5f]">CondomínioVoz</span>
+              <span style={{ fontWeight: 700, color: 'var(--navy)' }}>CondomínioVoz</span>
             </p>
-            <p className="text-xs text-gray-400">{dataRelatorio}</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+              {dataRelatorio}
+            </p>
           </div>
         </div>
       </main>
@@ -350,13 +443,21 @@ function SectionTitle({ numero, titulo }: { numero: string; titulo: string }) {
   return (
     <div className="flex items-center gap-3">
       <span
-        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-        style={{ backgroundColor: '#1e3a5f' }}
+        className="flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+        style={{
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          background: 'var(--navy)',
+          fontFamily: 'var(--font-body)',
+        }}
       >
         {numero}
       </span>
-      <h3 className="text-base font-bold text-gray-800">{titulo}</h3>
-      <div className="flex-1 h-px bg-gray-100" />
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--navy)' }}>
+        {titulo}
+      </h3>
+      <div style={{ flex: 1, height: '1px', background: 'var(--gray-100)' }} />
     </div>
   )
 }

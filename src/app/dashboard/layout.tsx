@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'sindico') redirect('/')
+  if (profile?.role !== 'sindico') redirect('/demandas')
 
   const { data: condo } = await supabase
     .from('condominios')

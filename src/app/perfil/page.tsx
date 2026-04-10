@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { User, Home, Building2, ShieldCheck } from 'lucide-react'
+import { Mail, Home, Building2, ShieldCheck, User } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
@@ -33,12 +33,30 @@ export default async function PerfilPage() {
     ? format(new Date(profile.created_at), "MMMM 'de' yyyy", { locale: ptBR })
     : '—'
 
+  const iniciais = (profile?.nome ?? '?')
+    .split(' ')
+    .slice(0, 2)
+    .map((p: string) => p[0].toUpperCase())
+    .join('')
+
+  const infoRows = [
+    { Icon: Mail,      label: 'Email',         value: user.email ?? '—' },
+    { Icon: Home,      label: 'Apartamento',   value: `Apto ${profile?.apartamento ?? '—'}` },
+    { Icon: Building2, label: 'Condomínio',    value: condo?.nome ?? '—' },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24">
+    <div className="min-h-screen pb-24" style={{ background: 'var(--gray-50)' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 px-4 py-3">
+      <header className="app-header">
         <div className="max-w-lg mx-auto">
-          <h1 className="text-base font-bold" style={{ color: '#1e3a5f' }}>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.375rem',
+              color: 'var(--navy)',
+            }}
+          >
             Perfil
           </h1>
         </div>
@@ -46,64 +64,118 @@ export default async function PerfilPage() {
 
       <main className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-4">
         {/* Avatar + nome */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center gap-3">
+        <div
+          className="flex flex-col items-center gap-4 py-8"
+          style={{
+            background: '#fff',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--gray-100)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          {/* Avatar */}
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold"
-            style={{ backgroundColor: '#1e3a5f' }}
+            className="flex items-center justify-center text-white"
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'var(--navy)',
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              boxShadow: '0 4px 16px rgba(30,58,95,0.25)',
+            }}
           >
-            {profile?.nome?.charAt(0).toUpperCase() ?? '?'}
+            {iniciais}
           </div>
 
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-gray-800">{profile?.nome}</h2>
-            <p className="text-sm text-gray-400 mt-0.5">{user.email}</p>
+          {/* Nome */}
+          <div className="text-center px-6">
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.5rem',
+                color: 'var(--navy)',
+                lineHeight: 1.2,
+              }}
+            >
+              {profile?.nome}
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', marginTop: '4px', fontFamily: 'var(--font-body)' }}>
+              Membro desde {membroDesde}
+            </p>
           </div>
 
           {/* Badge de role */}
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-              isSindico
-                ? 'bg-[#1e3a5f]/10 text-[#1e3a5f]'
-                : 'bg-green-100 text-green-700'
-            }`}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold"
+            style={{
+              fontFamily: 'var(--font-body)',
+              background: isSindico ? 'var(--navy-pale)' : 'var(--mint-pale)',
+              color: isSindico ? 'var(--navy)' : 'var(--mint-dark)',
+            }}
           >
-            {isSindico ? <ShieldCheck size={12} /> : <User size={12} />}
+            {isSindico ? <ShieldCheck size={14} /> : <User size={14} />}
             {isSindico ? 'Síndico' : 'Morador'}
           </span>
         </div>
 
-        {/* Dados do perfil */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        {/* Info rows */}
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--gray-100)',
+            boxShadow: 'var(--shadow-card)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header da seção */}
+          <div
+            className="px-5 py-3"
+            style={{ borderBottom: '1px solid var(--gray-100)' }}
+          >
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>
               Informações
             </p>
           </div>
 
-          {[
-            { Icon: User,      label: 'Nome completo', value: profile?.nome ?? '—' },
-            { Icon: Home,      label: 'Apartamento',   value: `Apto ${profile?.apartamento ?? '—'}` },
-            { Icon: Building2, label: 'Condomínio',    value: condo?.nome ?? '—' },
-          ].map(({ Icon, label, value }) => (
+          {infoRows.map(({ Icon, label, value }, idx) => (
             <div
               key={label}
-              className="flex items-center gap-4 px-5 py-3.5 border-b border-gray-50 last:border-0"
+              className="flex items-center gap-4 px-5 py-4"
+              style={{
+                borderBottom: idx < infoRows.length - 1 ? '1px solid var(--gray-100)' : 'none',
+              }}
             >
-              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                <Icon size={15} className="text-gray-400" />
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-100)' }}
+              >
+                <Icon size={15} style={{ color: 'var(--gray-400)' }} />
               </div>
-              <div>
-                <p className="text-xs text-gray-400">{label}</p>
-                <p className="text-sm font-medium text-gray-800">{value}</p>
+              <div className="flex-1 min-w-0">
+                <p style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                  {label}
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: 600,
+                    color: 'var(--navy)',
+                    fontFamily: 'var(--font-body)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {value}
+                </p>
               </div>
             </div>
           ))}
         </div>
-
-        {/* Membro desde */}
-        <p className="text-xs text-center text-gray-400">
-          Membro desde {membroDesde}
-        </p>
 
         {/* Logout */}
         <LogoutButton />

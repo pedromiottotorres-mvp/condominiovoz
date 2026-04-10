@@ -9,7 +9,7 @@ interface BottomNavProps {
 }
 
 const navItems = [
-  { href: '/', label: 'Demandas', icon: Home },
+  { href: '/demandas', label: 'Demandas', icon: Home },
   { href: '/votacoes', label: 'Votações', icon: Vote },
   { href: '/perfil', label: 'Perfil', icon: User },
 ]
@@ -24,12 +24,13 @@ export default function BottomNav({ isSindico = false }: BottomNavProps) {
   const pathname = usePathname()
   const items = isSindico ? [...navItems, sindicoItem] : navItems
 
+  if (pathname === '/') return null
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200">
       <div className="flex items-stretch h-16 max-w-lg mx-auto">
         {items.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href)
+          const isActive = pathname.startsWith(href)
 
           return (
             <Link

@@ -8,7 +8,7 @@ import {
   Paintbrush,
   Building,
   HelpCircle,
-  ThumbsUp,
+  ChevronUp,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -36,44 +36,14 @@ export interface DemandaCardData {
 
 const CATEGORIA_CONFIG: Record<
   Categoria,
-  { label: string; Icon: React.ElementType; bg: string; text: string }
+  { label: string; Icon: React.ElementType; cssClass: string }
 > = {
-  manutencao: {
-    label: 'Manutenção',
-    Icon: Wrench,
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-700',
-  },
-  seguranca: {
-    label: 'Segurança',
-    Icon: Shield,
-    bg: 'bg-red-100',
-    text: 'text-red-700',
-  },
-  lazer: {
-    label: 'Lazer',
-    Icon: Palmtree,
-    bg: 'bg-green-100',
-    text: 'text-green-700',
-  },
-  estetica: {
-    label: 'Estética',
-    Icon: Paintbrush,
-    bg: 'bg-purple-100',
-    text: 'text-purple-700',
-  },
-  estrutural: {
-    label: 'Estrutural',
-    Icon: Building,
-    bg: 'bg-orange-100',
-    text: 'text-orange-700',
-  },
-  outro: {
-    label: 'Outro',
-    Icon: HelpCircle,
-    bg: 'bg-gray-100',
-    text: 'text-gray-600',
-  },
+  manutencao: { label: 'Manutenção', Icon: Wrench,      cssClass: 'badge-manutencao' },
+  seguranca:  { label: 'Segurança',  Icon: Shield,      cssClass: 'badge-seguranca'  },
+  lazer:      { label: 'Lazer',      Icon: Palmtree,    cssClass: 'badge-lazer'      },
+  estetica:   { label: 'Estética',   Icon: Paintbrush,  cssClass: 'badge-estetica'   },
+  estrutural: { label: 'Estrutural', Icon: Building,    cssClass: 'badge-estrutural' },
+  outro:      { label: 'Outro',      Icon: HelpCircle,  cssClass: 'badge-outro'      },
 }
 
 interface Props {
@@ -91,56 +61,90 @@ export default function DemandaCard({ demanda, onApoiar, apoiando }: Props) {
     addSuffix: true,
   })
 
+  const apoiado = !!demanda.apoiado_por_mim
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <Link href={`/demanda/${demanda.id}`} className="block p-4">
+    <div
+      style={{
+        background: '#ffffff',
+        border: '1px solid var(--gray-100)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-card)',
+        overflow: 'hidden',
+        transition: 'box-shadow 0.25s var(--ease-spring), border-color 0.25s var(--ease-spring)',
+      }}
+      onMouseEnter={(e) => {
+        ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-hover)'
+        ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--gray-200)'
+      }}
+      onMouseLeave={(e) => {
+        ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-card)'
+        ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--gray-100)'
+      }}
+    >
+      <Link href={`/demanda/${demanda.id}`} className="block p-5">
         {/* Badge de categoria */}
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-          >
-            <Icon size={11} />
-            {config.label}
-          </span>
-        </div>
+        <span className={`badge ${config.cssClass}`} style={{ marginBottom: '10px', display: 'inline-flex' }}>
+          <Icon size={11} />
+          {config.label}
+        </span>
 
         {/* Título */}
-        <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">
+        <h3
+          className="line-clamp-2"
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontWeight: 700,
+            fontSize: '0.9375rem',
+            color: 'var(--navy)',
+            lineHeight: 1.4,
+            marginBottom: '8px',
+          }}
+        >
           {demanda.titulo}
         </h3>
 
         {/* Meta */}
-        <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-          <span>{demanda.autor.nome.split(' ')[0]}</span>
-          <span>·</span>
-          <span>Apto {demanda.autor.apartamento}</span>
-          <span>·</span>
-          <span>{tempoRelativo}</span>
-        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>
+          {demanda.autor.nome.split(' ')[0]} · Apto {demanda.autor.apartamento} · {tempoRelativo}
+        </p>
       </Link>
 
-      {/* Footer: apoio */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        <span className="text-xs text-gray-400">
-          {demanda.total_apoios}{' '}
-          {demanda.total_apoios === 1 ? 'apoio' : 'apoios'}
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-5 pb-4"
+        style={{ borderTop: '1px solid var(--gray-100)', paddingTop: '12px' }}
+      >
+        <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>
+          {demanda.total_apoios} {demanda.total_apoios === 1 ? 'apoio' : 'apoios'}
         </span>
 
         <button
-          onClick={() => onApoiar?.(demanda.id, !!demanda.apoiado_por_mim)}
+          onClick={() => onApoiar?.(demanda.id, apoiado)}
           disabled={apoiando}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 ${
-            demanda.apoiado_por_mim
-              ? 'bg-[#1e3a5f] text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            fontFamily: 'var(--font-body)',
+            cursor: apoiando ? 'not-allowed' : 'pointer',
+            opacity: apoiando ? 0.5 : 1,
+            transition: 'all 0.2s var(--ease-spring)',
+            border: apoiado ? '2px solid var(--mint)' : '2px solid var(--gray-200)',
+            background: apoiado ? 'var(--mint-pale)' : 'transparent',
+            color: apoiado ? 'var(--mint-dark)' : 'var(--gray-500)',
+          }}
         >
-          <ThumbsUp
+          <ChevronUp
             size={13}
-            strokeWidth={2.2}
-            fill={demanda.apoiado_por_mim ? 'currentColor' : 'none'}
+            strokeWidth={2.5}
+            style={{ color: apoiado ? 'var(--mint)' : 'var(--gray-400)' }}
           />
-          {demanda.apoiado_por_mim ? 'Apoiado' : 'Apoiar'}
+          {apoiado ? 'Apoiado' : 'Apoiar'}
         </button>
       </div>
     </div>
