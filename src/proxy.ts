@@ -32,36 +32,62 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Rota /dashboard acessível apenas por síndico
-  if (pathname.startsWith('/dashboard')) {
+  // Rotas públicas — nunca redirecionar
+  const publicRoutes = ['/', '/login', '/aguardando-aprovacao']
+  const isPublic = publicRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'))
+
+  // Usuário logado tentando acessar /login → redirecionar conforme status
+  if (pathname === '/login' && user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.status === 'pendente') {
+      return NextResponse.redirect(new URL('/aguardando-aprovacao', request.url))
+    }
+    if (profile?.status === 'rejeitado') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    if (profile?.role === 'sindico') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return NextResponse.redirect(new URL('/demandas', request.url))
+  }
+
+  // Rotas internas — exigem autenticação
+  if (!isPublic) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, status')
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'sindico') {
+    // Usuário pendente → página de espera
+    if (profile?.status === 'pendente') {
+      if (pathname !== '/aguardando-aprovacao') {
+        return NextResponse.redirect(new URL('/aguardando-aprovacao', request.url))
+      }
+      return supabaseResponse
+    }
+
+    // Usuário rejeitado → logout e login
+    if (profile?.status === 'rejeitado') {
+      await supabase.auth.signOut()
+      const url = new URL('/login', request.url)
+      url.searchParams.set('erro', 'acesso-negado')
+      return NextResponse.redirect(url)
+    }
+
+    // Morador tentando acessar /dashboard → redirecionar para /demandas
+    if (pathname.startsWith('/dashboard') && profile?.role !== 'sindico') {
       return NextResponse.redirect(new URL('/demandas', request.url))
     }
-  }
-
-  // Rotas protegidas (autenticação obrigatória)
-  const protectedRoutes = ['/demandas', '/demanda', '/votacoes', '/votacao', '/perfil', '/nova-demanda']
-  const isProtected = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + '/')
-  )
-
-  if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Usuário logado tentando acessar /login
-  if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/demandas', request.url))
   }
 
   return supabaseResponse

@@ -24,11 +24,16 @@ export default function BottomNav({ isSindico = false }: BottomNavProps) {
   const pathname = usePathname()
   const items = isSindico ? [...navItems, sindicoItem] : navItems
 
-  if (pathname === '/') return null
+  const HIDE_PATHS = ['/', '/login', '/aguardando-aprovacao']
+  if (HIDE_PATHS.includes(pathname)) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200">
-      <div className="flex items-stretch h-16 max-w-lg mx-auto">
+    <nav style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      background: '#fff', borderTop: '1px solid var(--gray-100)',
+      boxShadow: '0 -4px 16px rgba(15,36,64,0.06)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', height: '64px', maxWidth: '480px', margin: '0 auto' }}>
         {items.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href)
 
@@ -36,15 +41,26 @@ export default function BottomNav({ isSindico = false }: BottomNavProps) {
             <Link
               key={href}
               href={href}
-              className="flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors"
-              style={{ color: isActive ? '#1e3a5f' : '#9ca3af' }}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '4px',
+                textDecoration: 'none',
+                color: isActive ? 'var(--navy)' : 'var(--gray-400)',
+                transition: 'color 0.2s',
+              }}
             >
               <Icon
                 size={22}
                 strokeWidth={isActive ? 2.5 : 1.8}
-                style={{ color: isActive ? '#1e3a5f' : '#9ca3af' }}
+                style={{ color: isActive ? 'var(--navy)' : 'var(--gray-400)' }}
               />
-              <span>{label}</span>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: isActive ? 700 : 500,
+                fontFamily: 'var(--font-body)',
+                color: isActive ? 'var(--navy)' : 'var(--gray-400)',
+              }}>
+                {label}
+              </span>
             </Link>
           )
         })}

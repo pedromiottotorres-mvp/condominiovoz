@@ -30,75 +30,72 @@ export default function DemandasList({ demandas: initial, userId }: Props) {
   const [refreshing, startRefresh] = useTransition()
   const supabase = createClient()
 
-  const filtradas =
-    filtro === 'todas'
-      ? demandas
-      : demandas.filter((d) => d.categoria === filtro)
+  const filtradas = filtro === 'todas' ? demandas : demandas.filter((d) => d.categoria === filtro)
+
+  // Mapa ciclo_id → id da demanda que o usuário já apoiou naquele ciclo
+  const cicloApoiadoMap: Record<string, string> = {}
+  demandas.forEach((d) => {
+    if (d.ciclo_id && d.apoiado_por_mim) {
+      cicloApoiadoMap[d.ciclo_id] = d.id
+    }
+  })
 
   async function handleApoiar(id: string, jaApoiou: boolean) {
     if (apoiando) return
+
+    // Bloquear se já apoiou outra demanda do mesmo ciclo
+    if (!jaApoiou) {
+      const demandaAlvo = demandas.find((d) => d.id === id)
+      if (demandaAlvo?.ciclo_id) {
+        const jaApoiadaNoMesmoCiclo = cicloApoiadoMap[demandaAlvo.ciclo_id]
+        if (jaApoiadaNoMesmoCiclo && jaApoiadaNoMesmoCiclo !== id) return
+      }
+    }
+
     setApoiando(id)
 
-    // Optimistic update
     setDemandas((prev) =>
       prev.map((d) =>
         d.id === id
-          ? {
-              ...d,
-              apoiado_por_mim: !jaApoiou,
-              total_apoios: jaApoiou
-                ? d.total_apoios - 1
-                : d.total_apoios + 1,
-            }
+          ? { ...d, apoiado_por_mim: !jaApoiou, total_apoios: jaApoiou ? d.total_apoios - 1 : d.total_apoios + 1 }
           : d
       )
     )
 
     if (jaApoiou) {
-      await supabase
-        .from('apoios')
-        .delete()
-        .eq('demanda_id', id)
-        .eq('morador_id', userId)
+      await supabase.from('apoios').delete().eq('demanda_id', id).eq('morador_id', userId)
     } else {
-      await supabase
-        .from('apoios')
-        .insert({ demanda_id: id, morador_id: userId })
+      await supabase.from('apoios').insert({ demanda_id: id, morador_id: userId })
     }
 
     setApoiando(null)
   }
 
   function handleRefresh() {
-    startRefresh(() => {
-      router.refresh()
-    })
+    startRefresh(() => { router.refresh() })
   }
 
   return (
     <div>
-      {/* Chips de filtro */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-4 px-4"
-        style={{ marginBottom: '16px' }}
-      >
+      {/* Filtros */}
+      <div style={{
+        display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px',
+        marginBottom: '20px', scrollbarWidth: 'none',
+      }}>
         {CATEGORIAS.map(({ value, label }) => (
           <button
             key={value}
             onClick={() => setFiltro(value)}
             style={{
               flexShrink: 0,
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              fontFamily: 'var(--font-body)',
+              padding: '7px 16px', borderRadius: '50px',
+              fontSize: '0.8125rem', fontWeight: 600, fontFamily: 'var(--font-body)',
               cursor: 'pointer',
               transition: 'all 0.2s var(--ease-spring)',
-              background: filtro === value ? 'var(--navy)' : '#ffffff',
-              color: filtro === value ? '#ffffff' : 'var(--gray-500)',
+              background: filtro === value ? 'var(--navy)' : '#fff',
+              color: filtro === value ? '#fff' : 'var(--gray-500)',
               border: filtro === value ? '1.5px solid var(--navy)' : '1.5px solid var(--gray-200)',
-              boxShadow: filtro === value ? '0 2px 8px rgba(30,58,95,0.2)' : 'none',
+              boxShadow: filtro === value ? '0 2px 10px rgba(30,58,95,0.2)' : 'none',
             }}
           >
             {label}
@@ -107,37 +104,46 @@ export default function DemandasList({ demandas: initial, userId }: Props) {
       </div>
 
       {/* Lista */}
-      <div className="flex flex-col gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filtradas.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-16 text-center"
-            style={{
-              background: '#fff',
-              borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--gray-100)',
-            }}
-          >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: 'var(--navy-pale)' }}
-            >
-              <MessageSquarePlus size={28} style={{ color: 'var(--navy)' }} />
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '64px 24px', textAlign: 'center',
+            background: '#fff', borderRadius: '20px',
+            border: '1px solid var(--gray-100)',
+            boxShadow: '0 2px 12px rgba(15,36,64,0.06)',
+          }}>
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'var(--gray-100)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '20px',
+            }}>
+              <MessageSquarePlus size={32} style={{ color: 'var(--gray-300)' }} />
             </div>
-            <p
-              className="font-semibold mb-1"
-              style={{ color: 'var(--navy)', fontFamily: 'var(--font-body)' }}
-            >
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontSize: '1.2rem',
+              color: 'var(--gray-700)', marginBottom: '8px',
+            }}>
               Nenhuma demanda ainda
-            </p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', marginBottom: '20px' }}>
-              Seja o primeiro a registrar uma!
+            </h3>
+            <p style={{
+              fontSize: '0.9rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)',
+              marginBottom: '24px', lineHeight: 1.6,
+            }}>
+              Seja o primeiro a registrar uma demanda para o seu condomínio.
             </p>
             <Link
               href="/nova-demanda"
-              className="btn-primary"
-              style={{ padding: '10px 20px', fontSize: '0.875rem' }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: 'var(--navy)', color: '#fff',
+                padding: '12px 24px', borderRadius: '12px',
+                fontSize: '0.875rem', fontWeight: 600, fontFamily: 'var(--font-body)',
+                textDecoration: 'none',
+              }}
             >
-              Nova Demanda
+              Criar Primeira Demanda
             </Link>
           </div>
         ) : (
@@ -147,25 +153,25 @@ export default function DemandasList({ demandas: initial, userId }: Props) {
               demanda={demanda}
               onApoiar={handleApoiar}
               apoiando={apoiando === demanda.id}
+              bloqueadoPorCiclo={
+                !!demanda.ciclo_id &&
+                !!cicloApoiadoMap[demanda.ciclo_id] &&
+                cicloApoiadoMap[demanda.ciclo_id] !== demanda.id
+              }
             />
           ))
         )}
       </div>
 
-      {/* Botão refresh */}
       {filtradas.length > 0 && (
-        <div className="mt-6 flex justify-center">
+        <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
             style={{
-              fontSize: '0.8rem',
-              color: 'var(--gray-400)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              transition: 'color 0.2s',
+              fontSize: '0.8rem', color: 'var(--gray-400)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-body)', transition: 'color 0.2s',
             }}
           >
             {refreshing ? 'Atualizando...' : '↻ Atualizar lista'}

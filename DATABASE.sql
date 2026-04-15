@@ -14,19 +14,31 @@ CREATE TABLE condominios (
   nome TEXT NOT NULL,
   endereco TEXT,
   cidade TEXT DEFAULT 'São Paulo',
+  tipo TEXT CHECK (tipo IN ('predio', 'casas', 'misto')) DEFAULT 'predio',
   total_unidades INTEGER NOT NULL DEFAULT 50,
+  codigo_convite TEXT UNIQUE,                          -- código de 6 chars gerado automaticamente
+  sindico_id UUID REFERENCES auth.users(id),           -- quem cadastrou
+  status TEXT NOT NULL DEFAULT 'pendente'
+    CHECK (status IN ('pendente', 'ativo')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Perfis de usuário (estende o auth.users do Supabase)
+-- Criados explicitamente na tela de cadastro (sem trigger automático)
 CREATE TABLE profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   condominio_id UUID REFERENCES condominios(id) NOT NULL,
   nome TEXT NOT NULL,
-  apartamento TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'morador' CHECK (role IN ('morador', 'sindico')),
+  email TEXT,
+  apartamento TEXT,                                    -- NULL para síndico
+  role TEXT NOT NULL DEFAULT 'morador'
+    CHECK (role IN ('morador', 'sindico')),
+  status TEXT NOT NULL DEFAULT 'pendente'
+    CHECK (status IN ('pendente', 'ativo', 'rejeitado')),
   avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  aprovado_em TIMESTAMPTZ,
+  aprovado_por UUID REFERENCES auth.users(id),
+  criado_em TIMESTAMPTZ DEFAULT now()
 );
 
 -- Demandas dos moradores
@@ -110,9 +122,11 @@ CREATE INDEX idx_apoios_demanda ON apoios(demanda_id);
 CREATE INDEX idx_votacoes_condominio ON votacoes(condominio_id);
 CREATE INDEX idx_votos_votacao ON votos(votacao_id);
 CREATE INDEX idx_profiles_condominio ON profiles(condominio_id);
+CREATE INDEX idx_profiles_status ON profiles(status);
+CREATE INDEX idx_condominios_codigo ON condominios(codigo_convite);
 
 -- ============================================
--- 3. FUNÇÕES
+-- 3. FUNÇÕES E TRIGGERS
 -- ============================================
 
 -- Função para atualizar total_apoios quando um apoio é criado ou removido
@@ -139,25 +153,40 @@ CREATE TRIGGER trigger_update_apoios_delete
   AFTER DELETE ON apoios
   FOR EACH ROW EXECUTE FUNCTION update_total_apoios();
 
--- Função para criar perfil automaticamente quando um usuário se cadastra
-CREATE OR REPLACE FUNCTION handle_new_user()
+-- Função para gerar código de convite único (6 chars alfanuméricos, sem caracteres ambíguos)
+CREATE OR REPLACE FUNCTION generate_codigo_convite()
+RETURNS TEXT AS $$
+DECLARE
+  chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  result TEXT := '';
+  i INTEGER;
+BEGIN
+  FOR i IN 1..6 LOOP
+    result := result || substr(chars, floor(random() * length(chars) + 1)::INTEGER, 1);
+  END LOOP;
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para gerar código de convite automaticamente ao criar condomínio
+CREATE OR REPLACE FUNCTION set_codigo_convite()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, condominio_id, nome, apartamento, role)
-  VALUES (
-    NEW.id,
-    (NEW.raw_user_meta_data->>'condominio_id')::UUID,
-    COALESCE(NEW.raw_user_meta_data->>'nome', 'Morador'),
-    COALESCE(NEW.raw_user_meta_data->>'apartamento', '---'),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'morador')
-  );
+  IF NEW.codigo_convite IS NULL THEN
+    LOOP
+      NEW.codigo_convite := generate_codigo_convite();
+      EXIT WHEN NOT EXISTS (
+        SELECT 1 FROM condominios WHERE codigo_convite = NEW.codigo_convite
+      );
+    END LOOP;
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+CREATE TRIGGER trigger_set_codigo_convite
+  BEFORE INSERT ON condominios
+  FOR EACH ROW EXECUTE FUNCTION set_codigo_convite();
 
 -- ============================================
 -- 4. ROW LEVEL SECURITY (RLS)
@@ -172,27 +201,49 @@ ALTER TABLE votos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votacao_demandas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orcamento_itens ENABLE ROW LEVEL SECURITY;
 
--- Policies: usuários só veem dados do seu condomínio
+-- ── Condominios ──────────────────────────────────────────────────────────────
 
--- Condominios: qualquer autenticado pode ver seu condomínio
-CREATE POLICY "Usuarios veem seu condominio" ON condominios
-  FOR SELECT USING (
-    id IN (SELECT condominio_id FROM profiles WHERE id = auth.uid())
-  );
+-- Leitura pública: necessário para validar código de convite antes do cadastro
+-- e para usuários autenticados verem seu condomínio
+CREATE POLICY "Leitura publica de condominios" ON condominios
+  FOR SELECT USING (true);
 
--- Profiles: ver apenas do mesmo condomínio
+-- Qualquer usuário autenticado pode criar um condomínio (fluxo de cadastro do síndico)
+-- O vínculo com o síndico é feito via sindico_id na tabela
+CREATE POLICY "Autenticado cria condominio" ON condominios
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Síndico pode atualizar os dados do seu condomínio
+CREATE POLICY "Sindico atualiza condominio" ON condominios
+  FOR UPDATE USING (sindico_id = auth.uid());
+
+-- ── Profiles ─────────────────────────────────────────────────────────────────
+
+-- Ver perfis do mesmo condomínio (moradores ativos e pendentes)
 CREATE POLICY "Ver perfis do mesmo condominio" ON profiles
   FOR SELECT USING (
     condominio_id IN (SELECT condominio_id FROM profiles WHERE id = auth.uid())
   );
 
-CREATE POLICY "Usuarios atualizam proprio perfil" ON profiles
-  FOR UPDATE USING (id = auth.uid());
-
+-- Usuário insere o próprio perfil (sem perfil prévio, via id = auth.uid())
 CREATE POLICY "Inserir proprio perfil" ON profiles
   FOR INSERT WITH CHECK (id = auth.uid());
 
--- Demandas: ver e criar do mesmo condomínio
+-- Usuário atualiza o próprio perfil (nome, avatar, etc.)
+CREATE POLICY "Atualizar proprio perfil" ON profiles
+  FOR UPDATE USING (id = auth.uid());
+
+-- Síndico pode aprovar/rejeitar moradores do seu condomínio
+CREATE POLICY "Sindico gerencia moradores" ON profiles
+  FOR UPDATE USING (
+    condominio_id IN (
+      SELECT condominio_id FROM profiles
+      WHERE id = auth.uid() AND role = 'sindico'
+    )
+  );
+
+-- ── Demandas ─────────────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver demandas do condominio" ON demandas
   FOR SELECT USING (
     condominio_id IN (SELECT condominio_id FROM profiles WHERE id = auth.uid())
@@ -207,7 +258,7 @@ CREATE POLICY "Criar demanda no condominio" ON demandas
 CREATE POLICY "Atualizar propria demanda" ON demandas
   FOR UPDATE USING (autor_id = auth.uid() AND status = 'aberta');
 
--- Sindico pode atualizar qualquer demanda do condomínio (para mudar status)
+-- Síndico pode atualizar qualquer demanda do condomínio (para mudar status)
 CREATE POLICY "Sindico atualiza demandas" ON demandas
   FOR UPDATE USING (
     condominio_id IN (
@@ -215,7 +266,8 @@ CREATE POLICY "Sindico atualiza demandas" ON demandas
     )
   );
 
--- Apoios
+-- ── Apoios ───────────────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver apoios do condominio" ON apoios
   FOR SELECT USING (
     demanda_id IN (
@@ -231,7 +283,8 @@ CREATE POLICY "Criar apoio" ON apoios
 CREATE POLICY "Remover proprio apoio" ON apoios
   FOR DELETE USING (morador_id = auth.uid());
 
--- Votações
+-- ── Votações ─────────────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver votacoes do condominio" ON votacoes
   FOR SELECT USING (
     condominio_id IN (SELECT condominio_id FROM profiles WHERE id = auth.uid())
@@ -253,7 +306,8 @@ CREATE POLICY "Sindico atualiza votacao" ON votacoes
     )
   );
 
--- Votos
+-- ── Votos ────────────────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver votos da votacao" ON votos
   FOR SELECT USING (
     votacao_id IN (
@@ -266,7 +320,8 @@ CREATE POLICY "Ver votos da votacao" ON votos
 CREATE POLICY "Morador vota" ON votos
   FOR INSERT WITH CHECK (morador_id = auth.uid());
 
--- Votação-Demandas
+-- ── Votação-Demandas ─────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver vinculo votacao-demanda" ON votacao_demandas
   FOR SELECT USING (
     votacao_id IN (
@@ -283,7 +338,8 @@ CREATE POLICY "Sindico vincula demanda a votacao" ON votacao_demandas
     )
   );
 
--- Orçamento
+-- ── Orçamento ────────────────────────────────────────────────────────────────
+
 CREATE POLICY "Ver orcamento do condominio" ON orcamento_itens
   FOR SELECT USING (
     condominio_id IN (SELECT condominio_id FROM profiles WHERE id = auth.uid())
@@ -297,19 +353,22 @@ CREATE POLICY "Sindico gerencia orcamento" ON orcamento_itens
   );
 
 -- ============================================
--- 5. DADOS INICIAIS (para teste)
+-- 5. DADOS INICIAIS (para teste local)
 -- ============================================
 
--- Inserir o condomínio de teste
-INSERT INTO condominios (id, nome, endereco, total_unidades)
+-- Condomínio de teste (já com código de convite fixo e status ativo)
+INSERT INTO condominios (id, nome, endereco, cidade, tipo, total_unidades, codigo_convite, status)
 VALUES (
   'a0000000-0000-0000-0000-000000000001',
   'Edifício Moema Park',
-  'Rua dos Moradores, 123 - Moema, São Paulo/SP',
-  48
+  'Rua dos Moradores, 123 - Moema',
+  'São Paulo',
+  'predio',
+  48,
+  'TEST01',
+  'ativo'
 );
 
--- NOTA: Os perfis serão criados automaticamente pelo trigger
--- quando os usuários se cadastrarem via Supabase Auth.
--- O primeiro usuário cadastrado será o síndico (mude o role manualmente
--- no Supabase Dashboard → Table Editor → profiles → edite o campo role para 'sindico')
+-- NOTA: Perfis são criados pelo próprio usuário na tela de cadastro (/login).
+-- Para transformar um usuário em síndico do condomínio de teste, atualize manualmente:
+--   UPDATE profiles SET role = 'sindico', status = 'ativo' WHERE id = '<user-uuid>';

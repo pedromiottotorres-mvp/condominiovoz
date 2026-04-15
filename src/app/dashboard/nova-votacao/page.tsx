@@ -93,7 +93,7 @@ export default function NovaVotacaoPage() {
     const { data: votacao, error: insertError } = await supabase
       .from('votacoes')
       .insert({
-        condominio_id: CONDOMINIO_ID,
+        condominio_id: condominioId,
         criador_id: user.id,
         titulo: titulo.trim(),
         descricao: descricao.trim() || null,

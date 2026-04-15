@@ -2,15 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  ArrowLeft,
-  Wrench,
-  Shield,
-  Palmtree,
-  Paintbrush,
-  Building,
-  HelpCircle,
-  User,
-  Clock,
+  ArrowLeft, Wrench, Shield, Palmtree, Paintbrush, Building, HelpCircle, Clock,
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -27,16 +19,15 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   rejeitada:    { label: 'Rejeitada',    bg: '#fee2e2', color: '#b91c1c' },
 }
 
-const CATEGORIA_CONFIG: Record<
-  string,
-  { label: string; Icon: React.ElementType; cssClass: string }
-> = {
-  manutencao: { label: 'Manutenção', Icon: Wrench,     cssClass: 'badge-manutencao' },
-  seguranca:  { label: 'Segurança',  Icon: Shield,     cssClass: 'badge-seguranca'  },
-  lazer:      { label: 'Lazer',      Icon: Palmtree,   cssClass: 'badge-lazer'      },
-  estetica:   { label: 'Estética',   Icon: Paintbrush, cssClass: 'badge-estetica'   },
-  estrutural: { label: 'Estrutural', Icon: Building,   cssClass: 'badge-estrutural' },
-  outro:      { label: 'Outro',      Icon: HelpCircle, cssClass: 'badge-outro'      },
+const CATEGORIA_CONFIG: Record<string, {
+  label: string; Icon: React.ElementType; bg: string; color: string
+}> = {
+  manutencao: { label: 'Manutenção', Icon: Wrench,     bg: '#fef3c7', color: '#92400e' },
+  seguranca:  { label: 'Segurança',  Icon: Shield,     bg: '#fee2e2', color: '#991b1b' },
+  lazer:      { label: 'Lazer',      Icon: Palmtree,   bg: '#dbeafe', color: '#1e40af' },
+  estetica:   { label: 'Estética',   Icon: Paintbrush, bg: '#f3e8ff', color: '#6b21a8' },
+  estrutural: { label: 'Estrutural', Icon: Building,   bg: '#ffedd5', color: '#9a3412' },
+  outro:      { label: 'Outro',      Icon: HelpCircle, bg: '#f1f5f9', color: '#475569' },
 }
 
 interface Props {
@@ -47,140 +38,115 @@ export default async function DemandaPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+    .from('profiles').select('role').eq('id', user.id).single()
 
   const { data: demanda } = await supabase
     .from('demandas')
-    .select(
-      `id, titulo, descricao, categoria, status, total_apoios, foto_url, created_at,
-       autor:profiles!autor_id(nome, apartamento)`
-    )
-    .eq('id', id)
-    .single()
+    .select(`id, titulo, descricao, categoria, status, total_apoios, foto_url, created_at,
+       autor:profiles!autor_id(nome, apartamento)`)
+    .eq('id', id).single()
 
   if (!demanda) notFound()
 
   const { data: meuApoio } = await supabase
-    .from('apoios')
-    .select('id')
-    .eq('demanda_id', id)
-    .eq('morador_id', user.id)
-    .maybeSingle()
+    .from('apoios').select('id').eq('demanda_id', id).eq('morador_id', user.id).maybeSingle()
 
   const autor = Array.isArray(demanda.autor) ? demanda.autor[0] : demanda.autor
   const cat = CATEGORIA_CONFIG[demanda.categoria]
   const statusCfg = STATUS_CONFIG[demanda.status] ?? STATUS_CONFIG.aberta
   const { Icon: CatIcon } = cat
 
-  const dataFormatada = format(new Date(demanda.created_at), "d 'de' MMMM 'de' yyyy", {
-    locale: ptBR,
-  })
-  const tempoRelativo = formatDistanceToNow(new Date(demanda.created_at), {
-    locale: ptBR,
-    addSuffix: true,
-  })
+  const iniciais = autor?.nome?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() ?? '?'
+  const dataFormatada = format(new Date(demanda.created_at), "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+  const tempoRelativo = formatDistanceToNow(new Date(demanda.created_at), { locale: ptBR, addSuffix: true })
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: 'var(--gray-50)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #faf9f7 0%, var(--gray-50) 100%)', paddingBottom: '96px' }}>
       {/* Header */}
-      <header className="app-header">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <Link
-            href="/demandas"
-            className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
-            style={{ background: 'var(--gray-100)' }}
-          >
+      <header style={{
+        background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--gray-100)',
+        position: 'sticky', top: 0, zIndex: 40, padding: '14px 20px',
+      }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link href="/demandas" style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, textDecoration: 'none',
+          }}>
             <ArrowLeft size={18} style={{ color: 'var(--gray-600)' }} />
           </Link>
-          <span className={`badge ${cat.cssClass}`}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '5px',
+            padding: '4px 12px', borderRadius: '50px',
+            fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-body)',
+            background: cat.bg, color: cat.color,
+          }}>
             <CatIcon size={11} />
             {cat.label}
           </span>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto">
-        {/* Foto de destaque */}
+      <main style={{ maxWidth: '600px', margin: '0 auto' }}>
+        {/* Foto */}
         {demanda.foto_url && (
-          <div className="w-full h-56 relative">
-            <Image
-              src={demanda.foto_url}
-              alt={demanda.titulo}
-              fill
-              className="object-cover"
-            />
+          <div style={{ position: 'relative', width: '100%', height: '240px' }}>
+            <Image src={demanda.foto_url} alt={demanda.titulo} fill style={{ objectFit: 'cover' }} />
           </div>
         )}
 
-        <div className="px-4 py-6 flex flex-col gap-5">
-          {/* Status badge */}
-          <span
-            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold"
-            style={{
-              background: statusCfg.bg,
-              color: statusCfg.color,
-              fontFamily: 'var(--font-body)',
-              width: 'fit-content',
-            }}
-          >
+        <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Status */}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center',
+            padding: '4px 12px', borderRadius: '50px',
+            fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-body)',
+            background: statusCfg.bg, color: statusCfg.color, width: 'fit-content',
+          }}>
             {statusCfg.label}
           </span>
 
           {/* Título */}
-          <h2
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.5rem',
-              color: 'var(--navy)',
-              lineHeight: 1.25,
-            }}
-          >
+          <h2 style={{
+            fontFamily: 'var(--font-display)', fontSize: '1.6rem',
+            color: 'var(--navy)', lineHeight: 1.25,
+          }}>
             {demanda.titulo}
           </h2>
 
           {/* Descrição */}
           {demanda.descricao && (
-            <p
-              style={{
-                fontSize: '0.9375rem',
-                color: 'var(--gray-600)',
-                lineHeight: 1.7,
-                fontFamily: 'var(--font-body)',
-              }}
-            >
+            <p style={{
+              fontSize: '1rem', color: 'var(--gray-600)',
+              lineHeight: 1.7, fontFamily: 'var(--font-body)',
+            }}>
               {demanda.descricao}
             </p>
           )}
 
-          {/* Autor + data */}
-          <div
-            className="flex items-center justify-between p-4"
-            style={{
-              background: '#fff',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--gray-100)',
-              boxShadow: 'var(--shadow-card)',
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                style={{ background: 'var(--navy)' }}
-              >
-                {autor?.nome?.charAt(0).toUpperCase() ?? '?'}
+          {/* Info card */}
+          <div style={{
+            background: 'var(--gray-50)', borderRadius: '14px',
+            padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+                background: 'var(--navy)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.85rem', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-body)',
+              }}>
+                {iniciais}
               </div>
               <div>
-                <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--gray-800)', fontFamily: 'var(--font-body)' }}>
+                <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gray-800)', fontFamily: 'var(--font-body)' }}>
                   {autor?.nome}
                 </p>
                 <p style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
@@ -188,19 +154,19 @@ export default async function DemandaPage({ params }: Props) {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end', color: 'var(--gray-400)' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', color: 'var(--gray-400)' }}>
                 <Clock size={12} />
                 <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-body)' }}>{tempoRelativo}</span>
               </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--gray-300)', fontFamily: 'var(--font-body)' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--gray-300)', fontFamily: 'var(--font-body)', marginTop: '2px' }}>
                 {dataFormatada}
               </p>
             </div>
           </div>
 
           {/* Botão de apoio */}
-          <div className="flex flex-col items-center gap-3 py-2">
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
             <ApoiarButton
               demandaId={id}
               userId={user.id}

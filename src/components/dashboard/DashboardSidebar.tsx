@@ -7,6 +7,7 @@ import {
   Vote,
   Users,
   DollarSign,
+  Wallet,
   FileText,
   Building2,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/votacoes', label: 'Votações', icon: Vote, exact: false },
   { href: '/dashboard/moradores', label: 'Moradores', icon: Users, exact: false },
   { href: '/dashboard/orcamento', label: 'Orçamento', icon: DollarSign, exact: false },
+  { href: '/dashboard/financeiro', label: 'Financeiro', icon: Wallet, exact: false },
   { href: '/dashboard/relatorio', label: 'Relatório', icon: FileText, exact: false },
 ]
 

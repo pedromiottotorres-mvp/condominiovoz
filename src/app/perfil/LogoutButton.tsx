@@ -22,23 +22,16 @@ export default function LogoutButton() {
       onClick={handleLogout}
       disabled={loading}
       style={{
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        padding: '14px 24px',
-        borderRadius: 'var(--radius-md)',
-        border: '2px solid #fca5a5',
-        background: '#fff5f5',
-        color: '#dc2626',
-        fontSize: '0.9375rem',
-        fontWeight: 600,
-        fontFamily: 'var(--font-body)',
-        cursor: loading ? 'not-allowed' : 'pointer',
-        opacity: loading ? 0.6 : 1,
-        transition: 'all 0.2s var(--ease-spring)',
+        width: '100%', marginTop: '8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+        padding: '14px 24px', borderRadius: '14px',
+        border: '2px solid #fecaca', background: 'transparent',
+        color: '#dc2626', fontSize: '0.95rem', fontWeight: 600, fontFamily: 'var(--font-body)',
+        cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+        transition: 'background 0.2s, transform 0.15s var(--ease-spring)',
       }}
+      onMouseEnter={(e) => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
       {loading ? 'Saindo...' : 'Sair da conta'}
