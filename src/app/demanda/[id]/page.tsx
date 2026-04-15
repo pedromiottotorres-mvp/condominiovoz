@@ -46,7 +46,7 @@ export default async function DemandaPage({ params }: Props) {
 
   const { data: demanda } = await supabase
     .from('demandas')
-    .select(`id, titulo, descricao, categoria, status, total_apoios, foto_url, created_at,
+    .select(`id, titulo, descricao, categoria, status, total_apoios, foto_url, created_at, custo_estimado,
        autor:profiles!autor_id(nome, apartamento)`)
     .eq('id', id).single()
 
@@ -111,6 +111,29 @@ export default async function DemandaPage({ params }: Props) {
           }}>
             {statusCfg.label}
           </span>
+
+          {/* Custo estimado */}
+          {demanda.custo_estimado != null && (
+            demanda.custo_estimado > 0 ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                padding: '4px 12px', borderRadius: '50px', width: 'fit-content',
+                fontSize: '0.8rem', fontWeight: 600, fontFamily: 'var(--font-body)',
+                background: 'var(--mint-pale)', color: 'var(--mint-dark)',
+              }}>
+                💰 {demanda.custo_estimado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                padding: '4px 12px', borderRadius: '50px', width: 'fit-content',
+                fontSize: '0.8rem', fontFamily: 'var(--font-body)',
+                color: 'var(--gray-400)',
+              }}>
+                💰 Custo a definir
+              </span>
+            )
+          )}
 
           {/* Título */}
           <h2 style={{

@@ -20,36 +20,30 @@ const CATEGORIAS: { value: Categoria | 'todas'; label: string }[] = [
 interface Props {
   demandas: DemandaCardData[]
   userId: string
+  cicloApoiadoMapInicial?: Record<string, string>
 }
 
-export default function DemandasList({ demandas: initial, userId }: Props) {
+export default function DemandasList({ demandas: initial, userId, cicloApoiadoMapInicial = {} }: Props) {
   const router = useRouter()
   const [filtro, setFiltro] = useState<Categoria | 'todas'>('todas')
   const [demandas, setDemandas] = useState<DemandaCardData[]>(initial)
   const [apoiando, setApoiando] = useState<string | null>(null)
   const [refreshing, startRefresh] = useTransition()
+  // Estado separado para o mapa de bloqueio por ciclo — calculado server-side e mantido aqui
+  const [cicloApoiadoMap, setCicloApoiadoMap] = useState<Record<string, string>>(cicloApoiadoMapInicial)
   const supabase = createClient()
 
   const filtradas = filtro === 'todas' ? demandas : demandas.filter((d) => d.categoria === filtro)
 
-  // Mapa ciclo_id → id da demanda que o usuário já apoiou naquele ciclo
-  const cicloApoiadoMap: Record<string, string> = {}
-  demandas.forEach((d) => {
-    if (d.ciclo_id && d.apoiado_por_mim) {
-      cicloApoiadoMap[d.ciclo_id] = d.id
-    }
-  })
-
   async function handleApoiar(id: string, jaApoiou: boolean) {
     if (apoiando) return
 
+    const demandaAlvo = demandas.find((d) => d.id === id)
+
     // Bloquear se já apoiou outra demanda do mesmo ciclo
-    if (!jaApoiou) {
-      const demandaAlvo = demandas.find((d) => d.id === id)
-      if (demandaAlvo?.ciclo_id) {
-        const jaApoiadaNoMesmoCiclo = cicloApoiadoMap[demandaAlvo.ciclo_id]
-        if (jaApoiadaNoMesmoCiclo && jaApoiadaNoMesmoCiclo !== id) return
-      }
+    if (!jaApoiou && demandaAlvo?.ciclo_id) {
+      const jaApoiadaNoMesmoCiclo = cicloApoiadoMap[demandaAlvo.ciclo_id]
+      if (jaApoiadaNoMesmoCiclo && jaApoiadaNoMesmoCiclo !== id) return
     }
 
     setApoiando(id)
@@ -61,6 +55,19 @@ export default function DemandasList({ demandas: initial, userId }: Props) {
           : d
       )
     )
+
+    // Atualizar mapa de ciclo
+    if (demandaAlvo?.ciclo_id) {
+      if (jaApoiou) {
+        setCicloApoiadoMap((prev) => {
+          const next = { ...prev }
+          delete next[demandaAlvo.ciclo_id!]
+          return next
+        })
+      } else {
+        setCicloApoiadoMap((prev) => ({ ...prev, [demandaAlvo.ciclo_id!]: id }))
+      }
+    }
 
     if (jaApoiou) {
       await supabase.from('apoios').delete().eq('demanda_id', id).eq('morador_id', userId)

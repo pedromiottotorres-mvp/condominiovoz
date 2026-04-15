@@ -38,7 +38,7 @@ export default async function DemandasPage() {
     supabase
       .from('demandas')
       .select(
-        `id, titulo, categoria, total_apoios, created_at, ciclo_id,
+        `id, titulo, categoria, total_apoios, created_at, ciclo_id, custo_estimado,
          autor:profiles!autor_id(nome, apartamento)`
       )
       .eq('condominio_id', profile?.condominio_id)
@@ -60,6 +60,14 @@ export default async function DemandasPage() {
 
   const apoiadosSet = new Set((meusApoios ?? []).map((a) => a.demanda_id))
 
+  // Mapa server-side: ciclo_id → demanda_id que o morador já apoiou naquele ciclo
+  const cicloApoiadoMapInicial: Record<string, string> = {}
+  ;(rows ?? []).forEach((r) => {
+    if (r.ciclo_id && apoiadosSet.has(r.id)) {
+      cicloApoiadoMapInicial[r.ciclo_id] = r.id
+    }
+  })
+
   const demandas: DemandaCardData[] = (rows ?? []).map((r) => ({
     id: r.id,
     titulo: r.titulo,
@@ -69,6 +77,7 @@ export default async function DemandasPage() {
     autor: Array.isArray(r.autor) ? r.autor[0] : r.autor,
     apoiado_por_mim: apoiadosSet.has(r.id),
     ciclo_id: r.ciclo_id ?? null,
+    custo_estimado: r.custo_estimado ?? null,
   }))
 
   return (
@@ -221,7 +230,7 @@ export default async function DemandasPage() {
           return null
         })()}
 
-        <DemandasList demandas={demandas} userId={user.id} />
+        <DemandasList demandas={demandas} userId={user.id} cicloApoiadoMapInicial={cicloApoiadoMapInicial} />
       </main>
 
       <BottomNav isSindico={isSindico} />

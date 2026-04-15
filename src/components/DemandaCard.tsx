@@ -18,6 +18,7 @@ export interface DemandaCardData {
   autor: { nome: string; apartamento: string }
   apoiado_por_mim?: boolean
   ciclo_id?: string | null
+  custo_estimado?: number | null
 }
 
 const CATEGORIA_CONFIG: Record<Categoria, {
@@ -121,9 +122,20 @@ export default function DemandaCard({ demanda, onApoiar, apoiando, bloqueadoPorC
         borderTop: '1px solid var(--gray-50)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
-            {demanda.total_apoios} {demanda.total_apoios === 1 ? 'apoio' : 'apoios'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+              {demanda.total_apoios} {demanda.total_apoios === 1 ? 'apoio' : 'apoios'}
+            </span>
+            {demanda.custo_estimado != null && demanda.custo_estimado > 0 ? (
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--mint-dark)', fontFamily: 'var(--font-body)' }}>
+                {demanda.custo_estimado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            ) : demanda.custo_estimado != null ? (
+              <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                💰 Custo a definir
+              </span>
+            ) : null}
+          </div>
 
           <button
             onClick={(e) => { e.preventDefault(); if (!bloqueadoPorCiclo) onApoiar?.(demanda.id, apoiado) }}
