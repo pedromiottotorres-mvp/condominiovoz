@@ -173,7 +173,7 @@ export default function FinanceiroForm({ condominioId, mes, ano, inicial }: Prop
             {fmtBRL(saldo)}
           </p>
           <p style={{ fontSize: '0.75rem', color: saldoPositivo ? 'var(--mint-dark)' : '#dc2626', fontFamily: 'var(--font-body)', marginTop: '4px', opacity: 0.7 }}>
-            {saldoPositivo ? 'Disponível para melhorias e investimentos' : 'Déficit — custos superam a receita'}
+            {saldoPositivo ? 'Disponível para melhorias e investimentos' : 'Déficit. Os custos superam a receita.'}
           </p>
         </div>
       )}

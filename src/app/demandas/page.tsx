@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/BottomNav'
 import DemandasList from '@/components/DemandasList'
+import CardComoFunciona from '@/components/CardComoFunciona'
 import type { DemandaCardData } from '@/components/DemandaCard'
 
 export default async function DemandasPage() {
@@ -229,6 +230,8 @@ export default async function DemandasPage() {
 
           return null
         })()}
+
+        {ciclo && !isSindico && <CardComoFunciona />}
 
         <DemandasList demandas={demandas} userId={user.id} cicloApoiadoMapInicial={cicloApoiadoMapInicial} />
       </main>

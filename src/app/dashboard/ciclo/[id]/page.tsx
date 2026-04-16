@@ -60,7 +60,7 @@ export default async function CicloPage({ params }: Props) {
   // FASE: demandas
   let todasDemandas: {
     id: string; titulo: string; categoria: string; custo_estimado: number | null
-    total_apoios: number; qualificada: boolean
+    total_apoios: number
   }[] = []
 
   // FASE: votacao
@@ -84,7 +84,7 @@ export default async function CicloPage({ params }: Props) {
   if (fase === 'demandas') {
     const { data } = await supabase
       .from('demandas')
-      .select('id, titulo, categoria, custo_estimado, total_apoios, qualificada')
+      .select('id, titulo, categoria, custo_estimado, total_apoios')
       .eq('ciclo_id', id)
       .order('total_apoios', { ascending: false })
     todasDemandas = data ?? []
@@ -103,13 +103,21 @@ export default async function CicloPage({ params }: Props) {
   }
 
   if (fase === 'resultado' || fase === 'encerrado') {
-    const { data } = await supabase
-      .from('demandas')
-      .select('id, titulo, categoria, custo_estimado, posicao_ranking, financiada')
-      .eq('ciclo_id', id)
-      .not('posicao_ranking', 'is', null)
-      .order('posicao_ranking')
-    ranking = data ?? []
+    if (fase === 'resultado') {
+      const { data: rpcData } = await supabase.rpc('calcular_alocacao', { p_ciclo_id: id })
+      if (Array.isArray(rpcData) && rpcData.length > 0) {
+        ranking = rpcData
+      }
+    }
+    if (ranking.length === 0) {
+      const { data } = await supabase
+        .from('demandas')
+        .select('id, titulo, categoria, custo_estimado, posicao_ranking, financiada')
+        .eq('ciclo_id', id)
+        .not('posicao_ranking', 'is', null)
+        .order('posicao_ranking')
+      ranking = data ?? []
+    }
   }
 
   if (fase === 'execucao') {
@@ -121,7 +129,6 @@ export default async function CicloPage({ params }: Props) {
     demandasExecucao = data ?? []
   }
 
-  const demandasSemCusto = todasDemandas.filter(d => d.qualificada && !(d.custo_estimado && d.custo_estimado > 0)).length
   const totalFinanciado = ranking.filter(d => d.financiada).reduce((s, d) => s + (d.custo_estimado ?? 0), 0)
   const concluidasExec = demandasExecucao.filter(d => d.status_execucao === 'concluida').length
 
@@ -178,7 +185,16 @@ export default async function CicloPage({ params }: Props) {
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-body)', marginBottom: '12px' }}>
               Ação da fase atual
             </p>
-            <CicloAcoes cicloId={id} faseAtual={fase} demandasSemCusto={demandasSemCusto} />
+            <CicloAcoes
+              cicloId={id}
+              faseAtual={fase}
+              demandasQualificadasIds={todasDemandas
+                .filter(d => (Number(ciclo.min_apoios_para_votacao) - Number(d.total_apoios)) <= 0)
+                .map(d => d.id)}
+              demandasSemCusto={todasDemandas
+                .filter(d => (Number(ciclo.min_apoios_para_votacao) - Number(d.total_apoios)) <= 0 && !(d.custo_estimado && d.custo_estimado > 0))
+                .length}
+            />
           </div>
         )}
 
@@ -190,7 +206,9 @@ export default async function CicloPage({ params }: Props) {
                 Demandas do Ciclo
               </h2>
               <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
-                <strong style={{ color: 'var(--mint-dark)' }}>{todasDemandas.filter(d => d.qualificada).length}</strong>
+                <strong style={{ color: 'var(--mint-dark)' }}>
+                  {todasDemandas.filter(d => (Number(ciclo.min_apoios_para_votacao) - Number(d.total_apoios)) <= 0).length}
+                </strong>
                 {' de '}{todasDemandas.length} qualificadas
               </span>
             </div>
@@ -200,52 +218,55 @@ export default async function CicloPage({ params }: Props) {
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                {todasDemandas.map((d, idx) => (
-                  <div key={d.id} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                    padding: '14px 0',
-                    borderBottom: idx < todasDemandas.length - 1 ? '1px solid var(--gray-100)' : 'none',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gray-800)', fontFamily: 'var(--font-body)', marginBottom: '4px' }}>
-                        {d.titulo}
-                      </p>
-                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
-                          {CATEGORIA_LABELS[d.categoria] ?? d.categoria}
-                        </span>
-                        {d.custo_estimado && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
-                            {fmt(d.custo_estimado)}
+                {todasDemandas.map((d, idx) => {
+                  const faltando = Number(ciclo.min_apoios_para_votacao) - Number(d.total_apoios)
+                  return (
+                    <div key={d.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                      padding: '14px 0',
+                      borderBottom: idx < todasDemandas.length - 1 ? '1px solid var(--gray-100)' : 'none',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gray-800)', fontFamily: 'var(--font-body)', marginBottom: '4px' }}>
+                          {d.titulo}
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                            {CATEGORIA_LABELS[d.categoria] ?? d.categoria}
+                          </span>
+                          {d.custo_estimado && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)' }}>
+                              {fmt(d.custo_estimado)}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
+                            {d.total_apoios} apoios
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <CustoInput demandaId={d.id} custoInicial={d.custo_estimado} />
+                        {faltando <= 0 ? (
+                          <span style={{
+                            fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: '50px',
+                            background: 'var(--mint-pale)', color: 'var(--mint-dark)', fontFamily: 'var(--font-body)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            Qualificada ✓
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: '50px',
+                            background: 'var(--gray-100)', color: 'var(--gray-400)', fontFamily: 'var(--font-body)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {faltando} faltando
                           </span>
                         )}
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)' }}>
-                          {d.total_apoios} apoios
-                        </span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <CustoInput demandaId={d.id} custoInicial={d.custo_estimado} />
-                      {d.qualificada ? (
-                        <span style={{
-                          fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: '50px',
-                          background: 'var(--mint-pale)', color: 'var(--mint-dark)', fontFamily: 'var(--font-body)',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          Qualificada ✓
-                        </span>
-                      ) : (
-                        <span style={{
-                          fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: '50px',
-                          background: 'var(--gray-100)', color: 'var(--gray-400)', fontFamily: 'var(--font-body)',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {ciclo.min_apoios_para_votacao - d.total_apoios} faltando
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -358,7 +379,7 @@ export default async function CicloPage({ params }: Props) {
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: ranking.some(d => !d.financiada) ? '16px' : '0' }}>
                   {ranking.filter(d => d.financiada).map((d) => (
-                    <div key={d.id} style={{
+                    <div key={d.demanda_id || d.id} style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '14px 16px', borderRadius: '14px',
                       background: 'var(--mint-pale)', border: '1.5px solid var(--mint)',
@@ -384,7 +405,7 @@ export default async function CicloPage({ params }: Props) {
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {ranking.filter(d => !d.financiada).map((d) => (
-                        <div key={d.id} style={{
+                        <div key={d.demanda_id || d.id} style={{
                           display: 'flex', alignItems: 'center', gap: '12px',
                           padding: '14px 16px', borderRadius: '14px',
                           background: 'var(--gray-50)', border: '1px solid var(--gray-200)',

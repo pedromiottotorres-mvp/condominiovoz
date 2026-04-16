@@ -299,7 +299,7 @@ export default async function DashboardPage() {
                 <Wallet size={18} style={{ color: 'var(--navy)' }} />
               </div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--navy)' }}>
-                Financeiro — Mês Atual
+                Financeiro: Mês Atual
               </h2>
             </div>
             <Link

@@ -526,7 +526,7 @@ export default function LandingPage() {
                 }}
               >
                 Transforme reclamações em prioridades rankeadas e saiba exatamente onde investir o
-                orçamento do condomínio — com a participação real de quem mora lá.
+                orçamento do condomínio, com a participação real de quem mora lá.
               </p>
             </FadeIn>
             <FadeIn delay={0.3}>
@@ -734,7 +734,7 @@ export default function LandingPage() {
                   </h3>
                   <p style={{ fontSize: '1rem', lineHeight: 1.7, opacity: 0.85 }}>
                     Moradores registram demandas e votam no que importa. O síndico vê um ranking claro de
-                    prioridades — e o sistema recomenda onde alocar cada real do orçamento.
+                    prioridades. O sistema recomenda onde alocar cada real do orçamento.
                   </p>
                   <p style={{ marginTop: 20, fontWeight: 600, opacity: 1, fontSize: '1rem' }}>
                     Nenhum concorrente oferece isso.
@@ -1043,7 +1043,7 @@ export default function LandingPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  🔥 Preço de Fundador — Vagas Limitadas
+                  🔥 Preço de Fundador · Vagas Limitadas
                 </div>
                 <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
                   <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--navy)' }}>R$</span>
@@ -1121,7 +1121,7 @@ export default function LandingPage() {
                     textAlign: 'center',
                   }}
                 >
-                  Começar Agora — Teste Grátis
+                  Começar Agora · Teste Grátis
                 </a>
                 <p style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--gray-400)' }}>
                   Sem cartão de crédito. Cancele a qualquer momento.

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -11,6 +11,25 @@ export default function NovoCicloPage() {
 
   const [nome, setNome] = useState('')
   const [orcamento, setOrcamento] = useState('')
+  const [saldoAcumulado, setSaldoAcumulado] = useState<number | null>(null)
+
+  useEffect(() => {
+    async function fetchSaldo() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase.from('profiles').select('condominio_id').eq('id', user.id).single()
+      if (!profile?.condominio_id) return
+      const { data } = await supabase
+        .from('financeiro_mensal')
+        .select('saldo_investimento, receita_condominial, custos_fixos')
+        .eq('condominio_id', profile.condominio_id)
+      if (data) {
+        const total = data.reduce((sum, r) => sum + (r.saldo_investimento ?? (r.receita_condominial - r.custos_fixos)), 0)
+        setSaldoAcumulado(total)
+      }
+    }
+    fetchSaldo()
+  }, [])
   const [prazoDemandas, setPrazoDemandas] = useState('')
   const [prazoVotacao, setPrazoVotacao] = useState('')
   const [minApoios, setMinApoios] = useState('3')
@@ -155,6 +174,34 @@ export default function NovoCicloPage() {
                 onFocus={onFocus} onBlur={onBlur}
               />
             </div>
+            {saldoAcumulado !== null && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)', margin: 0 }}>
+                  Saldo acumulado disponível:{' '}
+                  <strong style={{ color: saldoAcumulado >= 0 ? 'var(--mint-dark)' : '#dc2626' }}>
+                    {saldoAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </strong>
+                </p>
+                {saldoAcumulado > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setOrcamento(String(saldoAcumulado))}
+                    style={{
+                      padding: '5px 14px', borderRadius: '8px',
+                      border: '1.5px solid var(--mint)', background: 'var(--mint-pale)',
+                      color: 'var(--mint-dark)', fontFamily: 'var(--font-body)',
+                      fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--mint)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--mint-pale)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--mint-dark)' }}
+                  >
+                    Usar saldo acumulado
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Prazo demandas */}

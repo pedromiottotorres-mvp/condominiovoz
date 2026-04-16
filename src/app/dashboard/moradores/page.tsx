@@ -162,7 +162,7 @@ export default async function MoradoresPage() {
         ) : (
           <>
             <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-body)', paddingLeft: '4px' }}>
-              Moradores Ativos — {ativos.length}
+              Moradores Ativos ({ativos.length})
             </p>
 
             {/* Tabela desktop */}

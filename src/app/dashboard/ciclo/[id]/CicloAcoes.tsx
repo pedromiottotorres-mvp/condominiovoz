@@ -26,10 +26,12 @@ export default function CicloAcoes({
   cicloId,
   faseAtual,
   demandasSemCusto = 0,
+  demandasQualificadasIds = [],
 }: {
   cicloId: string
   faseAtual: string
   demandasSemCusto?: number
+  demandasQualificadasIds?: string[]
 }) {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
@@ -39,6 +41,19 @@ export default function CicloAcoes({
 
   const acao = ACOES[faseAtual]
   if (!acao) return null
+
+  // Bloquear avanço para votação se nenhuma demanda atingiu o mínimo
+  if (faseAtual === 'demandas' && demandasQualificadasIds.length === 0) {
+    return (
+      <div style={{
+        padding: '12px 16px', borderRadius: '12px', fontSize: '0.875rem',
+        background: 'var(--gray-50)', border: '1px solid var(--gray-200)', color: 'var(--gray-500)',
+        fontFamily: 'var(--font-body)', lineHeight: 1.5,
+      }}>
+        Nenhuma demanda atingiu o mínimo de apoios ainda.
+      </div>
+    )
+  }
 
   // Bloquear avanço para votação se há demandas qualificadas sem custo
   if (faseAtual === 'demandas' && demandasSemCusto > 0) {
@@ -60,9 +75,22 @@ export default function CicloAcoes({
     setLoading(true)
     setErro('')
 
+    // Ao avançar para votação: marcar demandas qualificadas no banco
+    if (proximaFase === 'votacao' && demandasQualificadasIds.length > 0) {
+      const { error: qualError } = await supabase
+        .from('demandas')
+        .update({ qualificada: true })
+        .in('id', demandasQualificadasIds)
+      if (qualError) {
+        setErro('Erro ao qualificar demandas. Tente novamente.')
+        setLoading(false)
+        return
+      }
+    }
+
     // Ao avançar para resultado: calcular alocação primeiro
     if (proximaFase === 'resultado') {
-      const { error: calcError } = await supabase.rpc('calcular_alocacao', { ciclo_id: cicloId })
+      const { error: calcError } = await supabase.rpc('calcular_alocacao', { p_ciclo_id: cicloId })
       if (calcError) {
         setErro('Erro ao calcular alocação. Tente novamente.')
         setLoading(false)

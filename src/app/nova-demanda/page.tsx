@@ -48,12 +48,12 @@ export default function NovaDemandaPage() {
       const { data: profile } = await supabase
         .from('profiles').select('condominio_id').eq('id', user.id).single()
       if (!profile?.condominio_id) { setCiclo(null); return }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('ciclos')
         .select('id, nome, fase')
         .eq('condominio_id', profile.condominio_id)
-        .not('fase', 'in', '(encerrado)')
-        .order('created_at', { ascending: false })
+        .neq('fase', 'encerrado')
+        .order('criado_em', { ascending: false })
         .limit(1)
         .maybeSingle()
       setCiclo(data ?? null)

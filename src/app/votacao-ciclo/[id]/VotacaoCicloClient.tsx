@@ -137,7 +137,7 @@ export default function VotacaoCicloClient({ ciclo, demandas, apartamento, jaVot
               <ArrowLeft size={18} style={{ color: 'var(--gray-600)' }} />
             </button>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--navy)' }}>
-              Votação — {ciclo.nome}
+              Votação: {ciclo.nome}
             </h1>
           </div>
         </header>

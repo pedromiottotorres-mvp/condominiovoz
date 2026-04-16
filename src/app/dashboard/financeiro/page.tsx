@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
+import { Lightbulb } from 'lucide-react'
 import FinanceiroForm from './FinanceiroForm'
 import FinanceiroGrafico from './FinanceiroGrafico'
+import AdicionarMesAnteriorModal from './AdicionarMesAnteriorModal'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -27,7 +29,7 @@ export default async function FinanceiroPage() {
   const mesAtual = now.getMonth() + 1
   const anoAtual = now.getFullYear()
 
-  const [condoResult, mesAtualResult, historicoResult] = await Promise.all([
+  const [condoResult, mesAtualResult, historicoResult, todosResult] = await Promise.all([
     supabase.from('condominios').select('nome').eq('id', condoId).single(),
     supabase.from('financeiro_mensal')
       .select('*')
@@ -39,13 +41,20 @@ export default async function FinanceiroPage() {
       .select('*')
       .eq('condominio_id', condoId)
       .order('ano', { ascending: false })
-      .order('mes', { ascending: false })
-      .limit(12),
+      .order('mes', { ascending: false }),
+    supabase.from('financeiro_mensal')
+      .select('saldo_investimento, receita_condominial, custos_fixos')
+      .eq('condominio_id', condoId),
   ])
 
   const condoNome = condoResult.data?.nome ?? 'Condomínio'
   const dadosMes = mesAtualResult.data
   const historico = historicoResult.data ?? []
+  const todosRegistros = todosResult.data ?? []
+  const saldoAcumulado = todosRegistros.reduce(
+    (sum, r) => sum + (r.saldo_investimento ?? (r.receita_condominial - r.custos_fixos)),
+    0
+  )
 
   const receita = dadosMes?.receita_condominial ?? 0
   const custos = dadosMes?.custos_fixos ?? 0
@@ -78,6 +87,62 @@ export default async function FinanceiroPage() {
 
       <main style={{ maxWidth: '760px', margin: '0 auto', padding: '32px 24px 60px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
+        {/* ══ SALDO ACUMULADO PARA INVESTIMENTO ══ */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0a1628 0%, #1e3a5f 100%)',
+          borderRadius: '24px', padding: '36px 32px', position: 'relative', overflow: 'hidden',
+          boxShadow: '0 12px 40px rgba(10,22,40,0.35)',
+        }}>
+          <div style={{
+            position: 'absolute', top: '-80px', right: '-80px',
+            width: '260px', height: '260px', borderRadius: '50%',
+            background: 'rgba(16,185,129,0.06)', pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: '-50px', left: '-50px',
+            width: '180px', height: '180px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.03)', pointerEvents: 'none',
+          }} />
+          <p style={{
+            fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)',
+            fontFamily: 'var(--font-body)', marginBottom: '12px',
+          }}>
+            Saldo Acumulado para Investimento
+          </p>
+          <p style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(2.2rem, 6vw, 3.2rem)',
+            color: saldoAcumulado >= 0 ? '#6ee7b7' : '#fca5a5',
+            lineHeight: 1.05, marginBottom: '10px',
+          }}>
+            {fmtBRL(saldoAcumulado)}
+          </p>
+          <p style={{
+            fontSize: '0.82rem', color: 'rgba(255,255,255,0.38)',
+            fontFamily: 'var(--font-body)',
+          }}>
+            Total disponível para ciclos de demandas
+          </p>
+        </div>
+
+        {/* ══ CARD EDUCATIVO ══ */}
+        <div style={{
+          background: 'var(--gray-50)', borderRadius: '16px',
+          border: '1px solid var(--gray-100)', padding: '20px 24px',
+          display: 'flex', gap: '14px', alignItems: 'flex-start',
+        }}>
+          <Lightbulb size={20} style={{ color: 'var(--mint-dark)', flexShrink: 0, marginTop: '2px' }} strokeWidth={1.75} />
+          <div>
+            <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--navy)', fontFamily: 'var(--font-body)', marginBottom: '6px' }}>
+              Como funciona
+            </p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontFamily: 'var(--font-body)', lineHeight: 1.6, margin: 0 }}>
+              A receita menos os custos fixos resulta no saldo do mês. Esse valor se acumula mês a mês e fica disponível para ser investido nos ciclos de demandas votadas pelos moradores.
+            </p>
+          </div>
+        </div>
+
         {/* ══ CARD RESUMO — gradient ══ */}
         <div style={{
           background: 'linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-light) 100%)',
@@ -109,31 +174,29 @@ export default async function FinanceiroPage() {
           </div>
 
           {/* 3 valores */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-            <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                Receita do mês
-              </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', color: '#fff', lineHeight: 1.1 }}>
-                {fmtBRL(receita)}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                Custos fixos
-              </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', color: '#fca5a5', lineHeight: 1.1 }}>
-                {fmtBRL(custos)}
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                Para investimento
-              </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', color: saldoPositivo ? '#6ee7b7' : '#fca5a5', lineHeight: 1.1 }}>
-                {fmtBRL(saldo)}
-              </p>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', alignItems: 'end' }}>
+            {[
+              { label: 'Receita', value: fmtBRL(receita), color: '#fff' },
+              { label: 'Custos', value: fmtBRL(custos), color: '#fca5a5' },
+              { label: 'Saldo', value: fmtBRL(saldo), color: saldoPositivo ? '#6ee7b7' : '#fca5a5' },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: 'flex', flexDirection: 'column' }}>
+                <p style={{
+                  fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)',
+                  fontFamily: 'var(--font-body)', textTransform: 'uppercase',
+                  letterSpacing: '0.06em', marginBottom: '8px',
+                }}>
+                  {label}
+                </p>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(1.1rem, 3vw, 1.7rem)',
+                  color, lineHeight: 1.1, wordBreak: 'break-word',
+                }}>
+                  {value}
+                </p>
+              </div>
+            ))}
           </div>
 
           {!dadosMes && (
@@ -279,6 +342,9 @@ export default async function FinanceiroPage() {
             </>
           )}
         </div>
+
+        {/* ══ ADICIONAR MÊS ANTERIOR ══ */}
+        <AdicionarMesAnteriorModal condominioId={condoId} />
 
         {/* ══ GRÁFICO ══ */}
         {historico.length > 1 && (
