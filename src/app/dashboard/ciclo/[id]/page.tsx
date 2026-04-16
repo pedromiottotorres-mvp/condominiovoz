@@ -379,7 +379,7 @@ export default async function CicloPage({ params }: Props) {
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: ranking.some(d => !d.financiada) ? '16px' : '0' }}>
                   {ranking.filter(d => d.financiada).map((d) => (
-                    <div key={d.demanda_id || d.id} style={{
+                    <div key={d.id} style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '14px 16px', borderRadius: '14px',
                       background: 'var(--mint-pale)', border: '1.5px solid var(--mint)',
@@ -405,7 +405,7 @@ export default async function CicloPage({ params }: Props) {
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {ranking.filter(d => !d.financiada).map((d) => (
-                        <div key={d.demanda_id || d.id} style={{
+                        <div key={d.id} style={{
                           display: 'flex', alignItems: 'center', gap: '12px',
                           padding: '14px 16px', borderRadius: '14px',
                           background: 'var(--gray-50)', border: '1px solid var(--gray-200)',
