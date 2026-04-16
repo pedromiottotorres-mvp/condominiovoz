@@ -299,7 +299,7 @@ export default async function DashboardPage() {
                 <Wallet size={18} style={{ color: 'var(--navy)' }} />
               </div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--navy)' }}>
-                Financeiro: Mês Atual
+                Financeiro do Mês
               </h2>
             </div>
             <Link
@@ -311,7 +311,7 @@ export default async function DashboardPage() {
           </div>
 
           {finMes ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
               {[
                 { label: 'Receita', value: finMes.receita_condominial, color: 'var(--navy)' },
                 { label: 'Custos',  value: finMes.custos_fixos,        color: '#dc2626'     },
@@ -319,13 +319,14 @@ export default async function DashboardPage() {
                   color: (finMes.saldo_investimento ?? (finMes.receita_condominial - finMes.custos_fixos)) >= 0 ? 'var(--mint-dark)' : '#dc2626' },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{
+                  flex: '1 1 120px', minWidth: '120px',
                   background: 'var(--gray-50)', borderRadius: '12px',
                   padding: '14px 16px', border: '1px solid var(--gray-100)',
                 }}>
                   <p style={{ fontSize: '0.72rem', color: 'var(--gray-400)', fontFamily: 'var(--font-body)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {label}
                   </p>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color, lineHeight: 1.1 }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                     {Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </p>
                 </div>
