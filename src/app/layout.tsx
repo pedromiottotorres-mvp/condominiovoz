@@ -25,7 +25,7 @@ export default function RootLayout({
         <link rel="icon" href="/icons/icon-192x192.png" type="image/png" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }`,
+            __html: `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').then((reg) => console.log('SW registrado:', reg.scope)).catch((err) => console.log('SW erro:', err)); }`,
           }}
         />
       </head>

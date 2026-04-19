@@ -3,11 +3,19 @@
 import { useState, useEffect } from 'react'
 import { Smartphone } from 'lucide-react'
 
+type Platform = 'ios' | 'android' | 'desktop'
+
+type DeferredPrompt = Event & {
+  prompt: () => void
+  userChoice: Promise<{ outcome: string }>
+}
+
 export default function InstallCard() {
-  const [deferredPrompt, setDeferredPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null)
-  const [isIOS, setIsIOS] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<DeferredPrompt | null>(null)
+  const [platform, setPlatform] = useState<Platform>('desktop')
   const [isInstalled, setIsInstalled] = useState(false)
-  const [showIOSTip, setShowIOSTip] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
+  const [fallbackActive, setFallbackActive] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -19,29 +27,51 @@ export default function InstallCard() {
     }
 
     const ua = navigator.userAgent
-    setIsIOS(/iPhone|iPad|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream)
+    const isIOS = /iPhone|iPad|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream
+    const isAndroid = /Android/.test(ua)
+    setPlatform(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop')
+
+    console.log('PWA: registrando listener beforeinstallprompt')
 
     const handler = (e: Event) => {
+      console.log('PWA: beforeinstallprompt capturado!', e)
       e.preventDefault()
-      setDeferredPrompt(e as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> })
+      setDeferredPrompt(e as DeferredPrompt)
     }
     window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    const timer = setTimeout(() => {
+      setFallbackActive(true)
+    }, 3000)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      clearTimeout(timer)
+    }
   }, [])
 
   if (!mounted || isInstalled) return null
 
   async function handleInstall() {
+    console.log('PWA: botão clicado, deferredPrompt:', deferredPrompt)
     if (deferredPrompt) {
       deferredPrompt.prompt()
       const result = await deferredPrompt.userChoice
       if (result.outcome === 'accepted') {
         setDeferredPrompt(null)
       }
-    } else if (isIOS) {
-      setShowIOSTip((v) => !v)
+    } else {
+      setShowInstructions((v) => !v)
     }
   }
+
+  const INSTRUCTIONS: Record<Platform, string> = {
+    android: 'Abra o menu do Chrome (três pontos no canto superior) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial"',
+    ios: 'Toque no ícone de compartilhar (quadrado com seta) e depois em "Adicionar à Tela Inicial"',
+    desktop: 'No Chrome, clique no ícone de instalação na barra de endereço',
+  }
+
+  const showButton = deferredPrompt || fallbackActive
 
   return (
     <div style={{
@@ -71,7 +101,7 @@ export default function InstallCard() {
           }}>
             Acesse direto da tela inicial do seu celular, sem precisar abrir o navegador.
           </p>
-          {(deferredPrompt || isIOS) && (
+          {showButton && (
             <button
               onClick={handleInstall}
               style={{
@@ -92,17 +122,39 @@ export default function InstallCard() {
         </div>
       </div>
 
-      {showIOSTip && (
+      {showInstructions && (
         <div style={{
           marginTop: '16px',
-          padding: '12px 16px',
-          background: 'rgba(255,255,255,0.15)',
-          borderRadius: '12px',
-          fontSize: '0.875rem',
-          fontFamily: 'var(--font-body)',
-          lineHeight: 1.5,
+          padding: '20px',
+          background: '#fff',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.2)',
         }}>
-          No Safari, toque no ícone de compartilhar (quadrado com seta) e depois em &quot;Adicionar à Tela Inicial&quot;
+          <p style={{
+            fontSize: '0.9rem',
+            color: 'var(--navy)',
+            fontFamily: 'var(--font-body)',
+            lineHeight: 1.6,
+            marginBottom: '14px',
+          }}>
+            {INSTRUCTIONS[platform]}
+          </p>
+          <button
+            onClick={() => setShowInstructions(false)}
+            style={{
+              background: 'var(--navy-pale)',
+              color: 'var(--navy)',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '8px 18px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              cursor: 'pointer',
+            }}
+          >
+            Entendi
+          </button>
         </div>
       )}
     </div>
