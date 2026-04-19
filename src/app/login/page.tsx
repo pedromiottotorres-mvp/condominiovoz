@@ -143,6 +143,13 @@ export default function LoginPage() {
     if (searchParams.get('erro') === 'acesso-negado') {
       setError('Seu acesso foi negado. Entre em contato com o administrador.')
     }
+    if (searchParams.get('tab') === 'morador') {
+      setTab('morador')
+    }
+    const codigo = searchParams.get('codigo')
+    if (codigo) {
+      setCodigoConvite(codigo.toUpperCase().slice(0, 6))
+    }
   }, [searchParams])
 
   function changeTab(t: Tab) {

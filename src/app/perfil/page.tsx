@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/BottomNav'
+import InstallCard from '@/components/InstallCard'
 import LogoutButton from './LogoutButton'
 
 export default async function PerfilPage() {
@@ -134,6 +135,9 @@ export default async function PerfilPage() {
             </div>
           ))}
         </div>
+
+        {/* Instalar PWA */}
+        <InstallCard />
 
         {/* Logout */}
         <LogoutButton />

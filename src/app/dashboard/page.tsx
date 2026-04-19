@@ -9,6 +9,7 @@ import GraficoPizza from '@/components/dashboard/GraficoPizza'
 import SaudeIndicador from '@/components/dashboard/SaudeIndicador'
 import CodigoConviteCard from '@/components/dashboard/CodigoConviteCard'
 import MetricCard from '@/components/dashboard/MetricCard'
+import InstallCard from '@/components/InstallCard'
 
 const CATEGORIA_LABELS: Record<string, string> = {
   manutencao: 'Manutenção', seguranca: 'Segurança', lazer: 'Lazer',
@@ -145,6 +146,8 @@ export default async function DashboardPage() {
         {codigoConvite && (
           <CodigoConviteCard codigo={codigoConvite} condoNome={condoNome} />
         )}
+
+        <InstallCard />
 
         {/* Card de ciclo ativo */}
         {(() => {
