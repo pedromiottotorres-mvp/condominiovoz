@@ -13,16 +13,15 @@ type DeferredPrompt = Event & {
 export default function InstallCard() {
   const [deferredPrompt, setDeferredPrompt] = useState<DeferredPrompt | null>(null)
   const [platform, setPlatform] = useState<Platform>('desktop')
-  const [isInstalled, setIsInstalled] = useState(false)
+  const [installed, setInstalled] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
-  const [fallbackActive, setFallbackActive] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
 
     if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true)
+      setInstalled(true)
       return
     }
 
@@ -31,39 +30,17 @@ export default function InstallCard() {
     const isAndroid = /Android/.test(ua)
     setPlatform(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop')
 
-    console.log('PWA: registrando listener beforeinstallprompt')
-
     const handler = (e: Event) => {
-      console.log('PWA: beforeinstallprompt capturado!', e)
       e.preventDefault()
       setDeferredPrompt(e as DeferredPrompt)
+      setShowInstructions(false)
     }
     window.addEventListener('beforeinstallprompt', handler)
 
-    const timer = setTimeout(() => {
-      setFallbackActive(true)
-    }, 3000)
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler)
-      clearTimeout(timer)
-    }
+    return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  if (!mounted || isInstalled) return null
-
-  async function handleInstall() {
-    console.log('PWA: botão clicado, deferredPrompt:', deferredPrompt)
-    if (deferredPrompt) {
-      deferredPrompt.prompt()
-      const result = await deferredPrompt.userChoice
-      if (result.outcome === 'accepted') {
-        setDeferredPrompt(null)
-      }
-    } else {
-      setShowInstructions((v) => !v)
-    }
-  }
+  if (!mounted || installed) return null
 
   const INSTRUCTIONS: Record<Platform, string> = {
     android: 'Abra o menu do Chrome (três pontos no canto superior) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial"',
@@ -71,7 +48,18 @@ export default function InstallCard() {
     desktop: 'No Chrome, clique no ícone de instalação na barra de endereço',
   }
 
-  const showButton = deferredPrompt || fallbackActive
+  async function handleInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const result = await deferredPrompt.userChoice
+      if (result.outcome === 'accepted') {
+        setInstalled(true)
+      }
+      setDeferredPrompt(null)
+    } else {
+      setShowInstructions(true)
+    }
+  }
 
   return (
     <div style={{
@@ -101,24 +89,22 @@ export default function InstallCard() {
           }}>
             Acesse direto da tela inicial do seu celular, sem precisar abrir o navegador.
           </p>
-          {showButton && (
-            <button
-              onClick={handleInstall}
-              style={{
-                background: 'var(--mint)',
-                color: 'var(--navy)',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 24px',
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                fontFamily: 'var(--font-body)',
-                cursor: 'pointer',
-              }}
-            >
-              Instalar
-            </button>
-          )}
+          <button
+            onClick={handleInstall}
+            style={{
+              background: 'var(--mint)',
+              color: 'var(--navy)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '12px 24px',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              cursor: 'pointer',
+            }}
+          >
+            Instalar
+          </button>
         </div>
       </div>
 
