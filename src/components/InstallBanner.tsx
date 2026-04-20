@@ -1,58 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import { useInstall } from '@/contexts/InstallContext'
 
 const SESSION_KEY = 'install_banner_dismissed'
 const LANDING_PATHS = ['/', '/login', '/aguardando-aprovacao']
 
 export default function InstallBanner() {
   const pathname = usePathname()
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [visible, setVisible] = useState(false)
-  const [isIOS, setIsIOS] = useState(false)
+  const { deferredPrompt, installed, triggerInstall } = useInstall()
+  const [dismissed, setDismissed] = useState(false)
   const [showIOSInstructions, setShowIOSInstructions] = useState(false)
 
-  useEffect(() => {
-    // Não mostrar na landing, login ou aguardando
-    if (LANDING_PATHS.includes(pathname)) return
+  if (installed) return null
+  if (LANDING_PATHS.includes(pathname)) return null
+  if (dismissed) return null
+  if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_KEY)) return null
 
-    // Não mostrar se já está instalado (standalone)
-    if (window.matchMedia('(display-mode: standalone)').matches) return
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  const isIOS = /iphone|ipad|ipod/i.test(ua) && !(window as Window & { MSStream?: unknown }).MSStream
 
-    // Não mostrar se foi dispensado nesta sessão
-    if (sessionStorage.getItem(SESSION_KEY)) return
-
-    const ua = navigator.userAgent
-    const ios = /iphone|ipad|ipod/i.test(ua) && !(window as Window & { MSStream?: unknown }).MSStream
-    setIsIOS(ios)
-
-    if (ios) {
-      // iOS Safari: mostrar banner com instruções manuais
-      setVisible(true)
-      return
-    }
-
-    // Android/Chrome: aguardar o evento beforeinstallprompt
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setVisible(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [pathname])
+  if (!deferredPrompt && !isIOS) return null
 
   function dismiss() {
     sessionStorage.setItem(SESSION_KEY, '1')
-    setVisible(false)
+    setDismissed(true)
   }
 
   async function handleInstall() {
@@ -60,19 +34,14 @@ export default function InstallBanner() {
       setShowIOSInstructions(true)
       return
     }
-    if (!deferredPrompt) return
-    await deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') dismiss()
-    setDeferredPrompt(null)
+    await triggerInstall()
+    dismiss()
   }
-
-  if (!visible) return null
 
   return (
     <div style={{
       position: 'fixed',
-      bottom: 64, // acima do BottomNav
+      bottom: 64,
       left: 0,
       right: 0,
       zIndex: 60,
@@ -89,7 +58,6 @@ export default function InstallBanner() {
         maxWidth: '480px',
         margin: '0 auto',
       }}>
-        {/* Ícone do app */}
         <img
           src="/icons/icon-192x192.png"
           alt="CondomínioVoz"
@@ -98,7 +66,6 @@ export default function InstallBanner() {
           style={{ borderRadius: '8px', flexShrink: 0 }}
         />
 
-        {/* Textos */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {showIOSInstructions ? (
             <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
@@ -117,7 +84,6 @@ export default function InstallBanner() {
           )}
         </div>
 
-        {/* Botão instalar */}
         {!showIOSInstructions && (
           <button
             onClick={handleInstall}
@@ -138,7 +104,6 @@ export default function InstallBanner() {
           </button>
         )}
 
-        {/* Botão fechar */}
         <button
           onClick={dismiss}
           aria-label="Fechar"

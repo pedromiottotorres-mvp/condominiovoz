@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import ToastContainer from '@/components/Toast'
 import InstallBanner from '@/components/InstallBanner'
+import { InstallProvider } from '@/contexts/InstallContext'
 
 export const metadata: Metadata = {
   title: 'CondomínioVoz',
@@ -30,9 +31,11 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full bg-[#f8fafc] antialiased">
-        {children}
-        <InstallBanner />
-        <ToastContainer />
+        <InstallProvider>
+          {children}
+          <InstallBanner />
+          <ToastContainer />
+        </InstallProvider>
       </body>
     </html>
   )

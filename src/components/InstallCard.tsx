@@ -1,61 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Smartphone } from 'lucide-react'
+import { useInstall } from '@/contexts/InstallContext'
 
 type Platform = 'ios' | 'android' | 'desktop'
 
-type DeferredPrompt = Event & {
-  prompt: () => void
-  userChoice: Promise<{ outcome: string }>
+const INSTRUCTIONS: Record<Platform, string> = {
+  android: 'Abra o menu do Chrome (três pontos no canto superior) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial"',
+  ios: 'Toque no ícone de compartilhar (quadrado com seta) e depois em "Adicionar à Tela Inicial"',
+  desktop: 'No Chrome, clique no ícone de instalação na barra de endereço',
+}
+
+function getPlatform(): Platform {
+  if (typeof navigator === 'undefined') return 'desktop'
+  const ua = navigator.userAgent
+  const isIOS = /iPhone|iPad|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream
+  const isAndroid = /Android/.test(ua)
+  return isIOS ? 'ios' : isAndroid ? 'android' : 'desktop'
 }
 
 export default function InstallCard() {
-  const [deferredPrompt, setDeferredPrompt] = useState<DeferredPrompt | null>(null)
-  const [platform, setPlatform] = useState<Platform>('desktop')
-  const [installed, setInstalled] = useState(false)
+  const { deferredPrompt, installed, triggerInstall } = useInstall()
   const [showInstructions, setShowInstructions] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
+  if (installed) return null
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setInstalled(true)
-      return
-    }
-
-    const ua = navigator.userAgent
-    const isIOS = /iPhone|iPad|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream
-    const isAndroid = /Android/.test(ua)
-    setPlatform(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop')
-
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as DeferredPrompt)
-      setShowInstructions(false)
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  if (!mounted || installed) return null
-
-  const INSTRUCTIONS: Record<Platform, string> = {
-    android: 'Abra o menu do Chrome (três pontos no canto superior) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial"',
-    ios: 'Toque no ícone de compartilhar (quadrado com seta) e depois em "Adicionar à Tela Inicial"',
-    desktop: 'No Chrome, clique no ícone de instalação na barra de endereço',
-  }
+  const platform = getPlatform()
 
   async function handleInstall() {
     if (deferredPrompt) {
-      deferredPrompt.prompt()
-      const result = await deferredPrompt.userChoice
-      if (result.outcome === 'accepted') {
-        setInstalled(true)
-      }
-      setDeferredPrompt(null)
+      await triggerInstall()
     } else {
       setShowInstructions(true)
     }
